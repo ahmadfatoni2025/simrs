@@ -18,6 +18,8 @@ interface ResourcePageProps {
     endpoint: string;
     columns: ResourceColumn[];
     searchPlaceholder?: string;
+    action?: ReactNode;
+    refreshKey?: number;
 }
 
 interface Row {
@@ -37,6 +39,8 @@ export default function ResourcePage({
     endpoint,
     columns,
     searchPlaceholder,
+    action,
+    refreshKey,
 }: ResourcePageProps) {
     const navigate = useNavigate();
     const [rows, setRows] = useState<Row[]>([]);
@@ -72,7 +76,7 @@ export default function ResourcePage({
 
     useEffect(() => {
         void load();
-    }, [endpoint, search, page, navigate]);
+    }, [endpoint, search, page, navigate, refreshKey]);
 
     return (
         <AppShell>
@@ -83,6 +87,7 @@ export default function ResourcePage({
                         {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
                     </div>
                     <div className="flex items-center gap-2">
+                        {action}
                         <div className="relative w-full sm:w-64">
                             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                             <input

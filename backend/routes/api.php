@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\PendaftaranController;
 use App\Http\Controllers\Api\MasterData\AkunController;
 use App\Http\Controllers\Api\MasterData\MasterDiagnosaKeperawatanController;
 use App\Http\Controllers\Api\MasterData\MasterIcdXController;
@@ -12,6 +11,7 @@ use App\Http\Controllers\Api\MasterData\MasterTarifController;
 use App\Http\Controllers\Api\MasterData\PegawaiController;
 use App\Http\Controllers\Api\MasterData\SubUnitPegawaiController;
 use App\Http\Controllers\Api\MasterData\UnitPegawaiController;
+use App\Http\Controllers\Api\PendaftaranController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -25,6 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/pendaftaran', [PendaftaranController::class, 'index']);
+    Route::post('/pendaftaran', [PendaftaranController::class, 'store']);
 });
 
 Route::prefix('master-data')

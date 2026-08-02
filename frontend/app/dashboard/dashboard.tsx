@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { AppShell } from "~/components/layout/AppShell";
-import { StatGrid } from "~/components/dashboard/StatGrid";
-import { VisitsChart } from "~/components/dashboard/VisitsChart";
-import { RoomsCard } from "~/components/dashboard/RoomsCard";
-import { RecentPatientsTable } from "~/components/dashboard/RecentPatientsTable";
+import { StatGrid } from "~/dashboard/ui/StatGrid";
+import { VisitsChart } from "~/dashboard/ui/VisitsChart";
+import { RoomsCard } from "~/dashboard/ui/RoomsCard";
+import { RecentPatientsTable } from "~/dashboard/ui/RecentPatientsTable";
 import { api, getToken, type DashboardData } from "~/lib/api";
 
 export default function Dashboard() {

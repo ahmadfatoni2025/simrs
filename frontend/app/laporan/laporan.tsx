@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import { AppShell } from "~/components/layout/AppShell";
-import { RecentPatientsTable } from "~/components/dashboard/RecentPatientsTable";
-import { RoomsCard } from "~/components/dashboard/RoomsCard";
-import { StatGrid } from "~/components/dashboard/StatGrid";
+import { RecentPatientsTable } from "~/dashboard/ui/RecentPatientsTable";
+import { RoomsCard } from "~/dashboard/ui/RoomsCard";
+import { StatGrid } from "~/dashboard/ui/StatGrid";
 import { Card } from "~/components/ui/Card";
 import { api, getToken, type DashboardData } from "~/lib/api";
 
