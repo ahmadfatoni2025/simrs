@@ -2,6 +2,7 @@ import ResourcePage, {
     type ResourceColumn,
 } from "~/components/resource/ResourcePage";
 import { StatusBadge } from "~/components/ui/StatusBadge";
+import KamarTable from "./ui/KamarTable";
 
 const columns: ResourceColumn[] = [
     { key: "nama_kamar", label: "Nama Kamar" },
@@ -23,6 +24,7 @@ export default function RawatInapPage() {
             endpoint="/master-data/kamar"
             searchPlaceholder="Cari nama kamar..."
             columns={columns}
+            layout={(rows, onOpen) => <KamarTable rows={rows} columns={columns} onOpen={onOpen} />}
         />
     );
 }

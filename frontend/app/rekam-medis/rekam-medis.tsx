@@ -1,6 +1,7 @@
 import ResourcePage, {
     type ResourceColumn,
 } from "~/components/resource/ResourcePage";
+import DiagnosaList from "./ui/DiagnosaList";
 
 const columns: ResourceColumn[] = [
     { key: "kode_icd", label: "Kode ICD-10" },
@@ -15,6 +16,7 @@ export default function RekamMedisPage() {
             endpoint="/master-data/icd-x"
             searchPlaceholder="Cari kode / deskripsi diagnosa..."
             columns={columns}
+            layout={(rows, onOpen) => <DiagnosaList rows={rows} columns={columns} onOpen={onOpen} />}
         />
     );
 }

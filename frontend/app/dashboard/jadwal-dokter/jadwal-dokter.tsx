@@ -2,6 +2,7 @@ import ResourcePage, {
     type ResourceColumn,
 } from "~/components/resource/ResourcePage";
 import { StatusBadge } from "~/components/ui/StatusBadge";
+import DokterGrid from "./ui/DokterGrid";
 
 const columns: ResourceColumn[] = [
     { key: "nik_pegawai", label: "NIK" },
@@ -25,6 +26,7 @@ export default function JadwalDokterPage() {
             endpoint="/master-data/pegawai"
             searchPlaceholder="Cari nama dokter..."
             columns={columns}
+            layout={(rows, onOpen) => <DokterGrid rows={rows} columns={columns} onOpen={onOpen} />}
         />
     );
 }

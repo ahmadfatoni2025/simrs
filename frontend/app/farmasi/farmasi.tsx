@@ -1,6 +1,7 @@
 import ResourcePage, {
     type ResourceColumn,
 } from "~/components/resource/ResourcePage";
+import ObatPriceList from "./ui/ObatPriceList";
 
 const money = (value: unknown) =>
     "Rp " + Number(value ?? 0).toLocaleString("id-ID");
@@ -23,6 +24,7 @@ export default function FarmasiPage() {
             endpoint="/master-data/tarif"
             searchPlaceholder="Cari nama obat..."
             columns={columns}
+            layout={(rows, onOpen) => <ObatPriceList rows={rows} columns={columns} onOpen={onOpen} />}
         />
     );
 }

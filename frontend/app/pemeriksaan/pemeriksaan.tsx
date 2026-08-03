@@ -1,6 +1,7 @@
 import ResourcePage, {
     type ResourceColumn,
 } from "~/components/resource/ResourcePage";
+import TindakanTimeline from "./ui/TindakanTimeline";
 
 function money(value: unknown) {
     return "Rp " + Number(value ?? 0).toLocaleString("id-ID");
@@ -24,6 +25,7 @@ export default function PemeriksaanPage() {
             endpoint="/master-data/tarif"
             searchPlaceholder="Cari tindakan/layanan..."
             columns={columns}
+            layout={(rows, onOpen) => <TindakanTimeline rows={rows} columns={columns} onOpen={onOpen} />}
         />
     );
 }

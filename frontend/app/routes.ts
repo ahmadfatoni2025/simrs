@@ -9,7 +9,7 @@ export default [
     route("/login", "routes/login.tsx"),
     route("/dashboard", "dashboard/dashboard.tsx"),
     route("/pendaftaran", "pendaftaran/pendaftaran.tsx"),
-    route("/jadwal-dokter", "jadwal-dokter/jadwal-dokter.tsx"),
+    route("/jadwal-dokter", "dashboard/jadwal-dokter/jadwal-dokter.tsx"),
     route("/rekam-medis", "rekam-medis/rekam-medis.tsx"),
     route("/pemeriksaan", "pemeriksaan/pemeriksaan.tsx"),
     route("/farmasi", "farmasi/farmasi.tsx"),
