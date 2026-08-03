@@ -14,11 +14,23 @@ class Pasien extends Model
 
     protected $fillable = [
         'nomor_rekam_medis',
+        'nik',
         'nama_pasien',
+        'tempat_lahir',
         'jenis_kelamin',
         'tanggal_lahir',
+        'agama',
+        'status_pernikahan',
         'alamat',
+        'kecamatan',
+        'kabupaten',
+        'provinsi',
+        'penjamin',
         'no_telepon',
+        'email',
+        'upload_ktp',
+        'upload_kk',
+        'upload_bpjs',
     ];
 
     protected function casts(): array

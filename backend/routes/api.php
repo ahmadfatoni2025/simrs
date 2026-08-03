@@ -26,6 +26,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/pendaftaran', [PendaftaranController::class, 'index']);
     Route::post('/pendaftaran', [PendaftaranController::class, 'store']);
+    Route::get('/pendaftaran/{id}', [PendaftaranController::class, 'show']);
 });
 
 Route::prefix('master-data')
