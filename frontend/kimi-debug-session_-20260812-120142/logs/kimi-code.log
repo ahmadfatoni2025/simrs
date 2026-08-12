@@ -1,0 +1,5 @@
+2026-08-12T12:01:06.692Z INFO  llm config  turnStep=0.1 provider=openai model=kimi-k2.7-code modelAlias=moonshot-ai/kimi-k2.7-code thinkingEffort=on systemPromptChars=25160 toolCount=25
+2026-08-12T12:01:06.693Z INFO  llm request  turnStep=0.1
+2026-08-12T12:01:08.736Z WARN  llm request failed  turnStep=0.1 model=moonshot-ai/kimi-k2.7-code errorName=APIProviderQuotaExhaustedError errorMessage="429 Your account org-f41132883c8745b7a0e65bcd2678f94a <ak-fby81xx4ingi11h1i9t1> is suspended due to insufficient balance, please recharge your account or check your plan and billing details" statusCode=429
+2026-08-12T12:01:33.800Z INFO  llm request  turnStep=1.1
+2026-08-12T12:01:35.742Z WARN  llm request failed  turnStep=1.1 model=moonshot-ai/kimi-k2.7-code errorName=APIProviderQuotaExhaustedError errorMessage="429 Your account org-f41132883c8745b7a0e65bcd2678f94a <ak-fby81xx4ingi11h1i9t1> is suspended due to insufficient balance, please recharge your account or check your plan and billing details" statusCode=429

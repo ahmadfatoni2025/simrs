@@ -8,6 +8,7 @@ export default [
     index("routes/home.tsx"),
     route("/login", "routes/login.tsx"),
     route("/dashboard", "dashboard/dashboard.tsx"),
+    route("/master-data/:entity", "master-data/master-data.tsx"),
     route("/pendaftaran", "pendaftaran/layout.tsx", [
         route("registrasi-baru", "pendaftaran/registrasi-baru/registrasi-baru.tsx"),
         route("registrasi-lama", "pendaftaran/registrasi-lama/registrasi-lama.tsx"),

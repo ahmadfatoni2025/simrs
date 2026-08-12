@@ -58,8 +58,8 @@ export default function RegistrasiBaru() {
             <div className="w-full min-w-0 flex-1">
                 <FormRegistrasiKunjungan onSaved={handleSaved} />
             </div>
-            <div className="w-full min-w-0 xl:w-95 xl:shrink-0">
-                <div className="xl:sticky xl:top-4">
+            <div className="w-full min-w-0 xl:w-95 xl:shrink-0 xl:self-stretch">
+                <div className="sticky top-4">
                     {error && (
                         <div className="mb-3 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
                             {error}

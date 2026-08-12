@@ -1,21 +1,30 @@
 import { useEffect, useState } from "react";
-import { NavLink, useLocation } from "react-router";
+import { NavLink, useLocation, useNavigate } from "react-router";
 import {
     Activity,
     ArrowLeftRight,
     BarChart3,
+    Banknote,
     BedDouble,
+    Boxes,
+    Building2,
     CalendarClock,
     ChevronDown,
     ChevronRight,
     ClipboardList,
+    Database,
     FileText,
     FileUp,
+    FlaskConical,
+    HeartPulse,
     History,
     LayoutDashboard,
+    ListTree,
     LogOut,
+    MapPin,
     MonitorSmartphone,
     Network,
+    Package,
     PanelLeftClose,
     PanelLeftOpen,
     PillBottle,
@@ -24,16 +33,23 @@ import {
     Settings,
     ShieldCheck,
     Stethoscope,
+    Store,
+    Syringe,
     UserPlus,
     UserSearch,
     Users,
+    Wallet,
     X,
     XCircle,
+    Search,
+    Inbox,
+    Plus,
+    Clock,
+    Layers,
     type LucideIcon,
 } from "lucide-react";
 import { cn } from "~/lib/utils";
-
-/* ── Tipe data navigasi (mendukung sub-tab / child items) ── */
+import { masterEntities } from "~/master-data/masterDataConfig";
 
 export interface NavItem {
     label: string;
@@ -42,8 +58,58 @@ export interface NavItem {
     children?: NavItem[];
 }
 
+const masterDataIcon: Record<string, LucideIcon> = {
+    "barang-farmasi": PillBottle,
+    "barang-rumah-tangga": Boxes,
+    "barang-gizi": Package,
+    pabrik: Building2,
+    sediaan: PillBottle,
+    satuan: ListTree,
+    "kelas-terapi": HeartPulse,
+    bed: BedDouble,
+    "signa-obat": ClipboardList,
+    "paket-mcu": FlaskConical,
+    "paket-tindakan": Syringe,
+    instalasi: Building2,
+    instansi: Store,
+    "template-expertise": FileText,
+    "template-resep-racikan": ClipboardList,
+    pegawai: UserSearch,
+    "profesi-nakes": Users,
+    smf: Stethoscope,
+    spesialisasi: Stethoscope,
+    supplier: Store,
+    "item-laboratorium": FlaskConical,
+    wilayah: MapPin,
+    rekening: Wallet,
+    "kategori-barang": Boxes,
+    "triase-primer": Activity,
+    "kuota-poliklinik": CalendarClock,
+    "jadwal-dokter": CalendarClock,
+    tarif: Banknote,
+    "icd-x": FileText,
+    "diagnosa-keperawatan": FileText,
+    penjamin: ShieldCheck,
+    akun: Wallet,
+    kamar: BedDouble,
+    "unit-pegawai": Building2,
+    "kategori-nilai-normal": FlaskConical,
+};
+
+const masterDataNavItems: NavItem[] = masterEntities.map((e) => ({
+    label: e.title,
+    to: `/master-data/${e.key}`,
+    icon: masterDataIcon[e.key] ?? Database,
+}));
+
 const navItems: NavItem[] = [
     { label: "Dashboard", to: "/dashboard", icon: LayoutDashboard },
+    {
+        label: "Master Data",
+        to: "/master-data",
+        icon: Database,
+        children: masterDataNavItems,
+    },
     {
         label: "Pendaftaran Pasien",
         to: "/pendaftaran",
@@ -79,8 +145,6 @@ const navItems: NavItem[] = [
     { label: "Pengaturan", to: "/pengaturan", icon: Settings },
 ];
 
-/* ── Item menu tunggal (sub-item) ── */
-
 function SidebarLink({
     item,
     to,
@@ -100,32 +164,20 @@ function SidebarLink({
             end
             className={({ isActive }) =>
                 cn(
-                    "group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200",
-                    collapsed ? "justify-center px-0" : depth > 0 && "pl-11",
+                    "group flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-150",
+                    collapsed ? "justify-center px-0" : depth > 0 && "pl-9 text-slate-500",
                     isActive
-                        ? "bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-600 shadow-sm border border-indigo-100/50"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border border-transparent"
+                        ? "bg-slate-200/70 text-slate-900 font-semibold"
+                        : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900"
                 )
             }
             title={collapsed ? item.label : undefined}
         >
-            <Icon className={cn(
-                "h-[18px] w-[18px] shrink-0 transition-colors duration-200",
-                depth > 0 && !collapsed && "h-4 w-4"
-            )} />
-            {!collapsed && (
-                <>
-                    <span className="flex-1 truncate">{item.label}</span>
-                    {depth > 0 && (
-                        <div className="h-1.5 w-1.5 rounded-full bg-indigo-400 opacity-0 group-[.active]:opacity-100 transition-opacity" />
-                    )}
-                </>
-            )}
+            <Icon className={cn("h-4 w-4 shrink-0 transition-colors", depth > 0 && !collapsed && "h-3.5 w-3.5 text-slate-400")} />
+            {!collapsed && <span className="truncate">{item.label}</span>}
         </NavLink>
     );
 }
-
-/* ── Item menu dengan / tanpa sub-tab ── */
 
 function SidebarNavItem({
     item,
@@ -141,7 +193,6 @@ function SidebarNavItem({
     const location = useLocation();
     const hasChildren = !!item.children && item.children.length > 0;
 
-    // Menandai apakah ada sub-item yang sedang aktif
     const childActive = hasChildren
         ? item.children!.some(
             (c) =>
@@ -152,7 +203,6 @@ function SidebarNavItem({
 
     const [open, setOpen] = useState(childActive);
 
-    // Agar submenu tetap terbuka selama salah satu child-nya aktif
     useEffect(() => {
         if (childActive) setOpen(true);
     }, [childActive]);
@@ -175,160 +225,175 @@ function SidebarNavItem({
                 }}
                 title={collapsed ? item.label : undefined}
                 className={cn(
-                    "group flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200",
+                    "group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-150",
                     collapsed ? "justify-center px-0" : "",
                     childActive
-                        ? "bg-indigo-50/80 text-indigo-700 border border-indigo-100/60"
+                        ? "bg-slate-200/80 text-slate-900 font-semibold"
                         : open
-                            ? "bg-indigo-50/40 text-indigo-600 border border-indigo-100/40"
-                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900 border border-transparent"
+                            ? "bg-slate-200/40 text-slate-900"
+                            : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900"
                 )}
             >
-                <item.icon className="h-[18px] w-[18px] shrink-0 transition-colors duration-200" />
+                <item.icon className="h-4 w-4 shrink-0 text-slate-500 group-hover:text-slate-800" />
                 {!collapsed && (
                     <>
                         <span className="flex-1 text-left truncate">{item.label}</span>
-                        <div className={cn(
-                            "flex items-center justify-center h-5 w-5 rounded-full transition-all duration-200",
-                            open || childActive ? "bg-indigo-100 text-indigo-600" : "text-gray-400 group-hover:text-gray-600"
-                        )}>
-                            {open ? (
-                                <ChevronDown className="h-3.5 w-3.5" />
-                            ) : (
-                                <ChevronRight className="h-3.5 w-3.5" />
+                        <ChevronRight
+                            className={cn(
+                                "h-3.5 w-3.5 text-slate-400 transition-transform duration-200",
+                                open && "rotate-90 text-slate-600"
                             )}
-                        </div>
+                        />
                     </>
                 )}
             </button>
 
-            {!collapsed && (
-                <div className={cn(
-                    "overflow-hidden transition-all duration-300 ease-in-out",
-                    open ? "max-h-[900px] opacity-100 mt-1" : "max-h-0 opacity-0"
-                )}>
-                    <div className="space-y-0.5 py-1">
-                        {item.children!.map((child) => (
-                            <SidebarNavItem key={child.to} item={child} depth={depth + 1} collapsed={collapsed} onExpand={onExpand} />
-                        ))}
-                    </div>
+            {!collapsed && open && (
+                <div className="mt-0.5 space-y-0.5 pl-1">
+                    {item.children!.map((child) => (
+                        <SidebarNavItem key={child.to} item={child} depth={depth + 1} collapsed={collapsed} onExpand={onExpand} />
+                    ))}
                 </div>
             )}
         </div>
     );
 }
 
-/* ── Divider ── */
+function SidebarHeader({
+    collapsed,
+    isHovered,
+    onToggle,
+}: {
+    collapsed?: boolean;
+    isHovered?: boolean;
+    onToggle?: () => void;
+}) {
+    const navigate = useNavigate();
 
-function SidebarDivider() {
     return (
-        <div className="px-4 py-2">
-            <div className="border-t border-gray-100" />
-        </div>
-    );
-}
-
-/* ── Navigasi utama ── */
-
-function SidebarNav({ collapsed, onExpand }: { collapsed: boolean; onExpand?: () => void }) {
-    return (
-        <nav className="flex-1 px-3 py-6 overflow-y-auto space-y-1 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
-            <div className={cn("px-3.5 mb-3", collapsed && "px-0 text-center")}>
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                    {collapsed ? "•••" : "Menu Utama"}
-                </p>
-            </div>
-            {navItems.slice(0, 1).map((item) => (
-                <SidebarNavItem key={item.to} item={item} collapsed={collapsed} onExpand={onExpand} />
-            ))}
-
-            <SidebarDivider />
-
-            <div className={cn("px-3.5 mb-3 mt-4", collapsed && "px-0 text-center")}>
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                    {collapsed ? "•••" : "Layanan"}
-                </p>
-            </div>
-            {navItems.slice(1, -1).map((item) => (
-                <SidebarNavItem key={item.to} item={item} collapsed={collapsed} onExpand={onExpand} />
-            ))}
-
-            <SidebarDivider />
-
-            <div className={cn("px-3.5 mb-3 mt-4", collapsed && "px-0 text-center")}>
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                    {collapsed ? "•••" : "Sistem"}
-                </p>
-            </div>
-            {navItems.slice(-1).map((item) => (
-                <SidebarNavItem key={item.to} item={item} collapsed={collapsed} onExpand={onExpand} />
-            ))}
-        </nav>
-    );
-}
-
-/* ── Brand / logo ── */
-
-function SidebarBrand({ collapsed, onExpand }: { collapsed?: boolean; onExpand?: () => void }) {
-    return (
-        <div className={cn("px-5 py-5 border-b border-gray-100", collapsed && "px-3")}>
-            <div className={cn("flex items-center gap-3.5", collapsed && "justify-center")}>
-                <div
-                    className={cn("relative", collapsed && "cursor-pointer")}
-                    onClick={() => {
-                        if (collapsed) onExpand?.();
-                    }}
-                    title={collapsed ? "Klik logo untuk membuka menu" : undefined}
-                >
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl blur-lg opacity-20" />
-                    <img
-                        className="relative w-11 h-11 rounded-xl bg-white p-2 shadow-lg ring-1 ring-gray-100"
-                        src="/img/logo.png"
-                        alt="Logo"
-                    />
-                </div>
-                {!collapsed && (
-                    <div className="select-none">
-                        <p className="text-lg font-bold tracking-tight text-gray-900 leading-none">
-                            SIMRS<span className="text-indigo-600">.</span>
-                        </p>
-                        <p className="text-[11px] font-medium text-gray-500 mt-1 tracking-wide">Rumah Sakit Sehat</p>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-
-/* ── Profil pengguna ── */
-
-function SidebarProfile({ collapsed }: { collapsed?: boolean }) {
-    return (
-        <div className="p-3 border-t border-gray-100 bg-gradient-to-r from-gray-50 to-white">
-            <div className="flex items-center gap-3 px-2 py-1.5 rounded-xl hover:bg-white hover:shadow-sm transition-all duration-200 cursor-pointer group">
-                <div className="relative shrink-0">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25 ring-2 ring-white">
-                        <span className="text-xs font-bold text-white">RM</span>
-                    </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 ring-2 ring-white" />
-                </div>
-                {!collapsed && (
+        <div className="p-3 border-b border-slate-200/60">
+            {/* Top Workspace Selector & Toggle Button */}
+            <div className="flex items-center justify-between gap-2">
+                {collapsed ? (
+                    /* Saat collapsed: Tampilkan tombol Buka Menu yang menggantikan logo RS */
+                    <button
+                        type="button"
+                        onClick={onToggle}
+                        title="Buka menu sidebar"
+                        className={cn(
+                            "flex h-10 w-10 mx-auto items-center justify-center rounded-xl bg-white border border-slate-200/80 text-slate-700 shadow-2xs hover:bg-slate-100 hover:text-slate-900 transition-all",
+                            isHovered && "ring-2 ring-slate-900/10 bg-slate-100 scale-105"
+                        )}
+                    >
+                        <PanelLeftOpen className="h-5 w-5 text-slate-700" />
+                    </button>
+                ) : (
+                    /* Saat terbuka: Tampilkan logo RS & info akun beserta tombol tutup */
                     <>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">Dr. Rina Marlina</p>
-                            <p className="text-xs text-gray-500 truncate">Administrator</p>
+                        <div
+                            onClick={() => navigate("/pengaturan")}
+                            title="Buka Pengaturan Profil"
+                            className="flex items-center gap-2.5 min-w-0 flex-1 rounded-xl border border-slate-200/80 bg-white p-2 shadow-2xs cursor-pointer hover:bg-slate-50 transition-colors"
+                        >
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white font-bold text-xs shadow-2xs">
+                                RS
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <p className="truncate text-xs font-bold text-slate-900 leading-tight">Rumah Sakit Sehat</p>
+                                <p className="truncate text-[10px] text-slate-400">dr.rina@simrs.id</p>
+                            </div>
+                            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-400" />
                         </div>
-                        <button className="h-8 w-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all opacity-0 group-hover:opacity-100">
-                            <LogOut className="h-4 w-4" />
+
+                        <button
+                            type="button"
+                            onClick={onToggle}
+                            title="Ciutkan menu"
+                            className="hidden lg:flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200/80 bg-white text-slate-500 shadow-2xs hover:bg-slate-100 hover:text-slate-900 transition-all"
+                        >
+                            <PanelLeftClose className="h-4 w-4" />
                         </button>
                     </>
                 )}
             </div>
+
+            {/* Quick Action Button saat terbuka */}
+            {!collapsed && (
+                <div className="mt-2.5">
+                    <button
+                        type="button"
+                        onClick={() => navigate("/pendaftaran/registrasi-baru")}
+                        className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-slate-900 active:scale-98 transition-all"
+                    >
+                        <Plus className="h-3.5 w-3.5 text-slate-500" />
+                        Pendaftaran Baru
+                    </button>
+                </div>
+            )}
+
+            {/* Search & Utility quick links saat terbuka */}
+            {!collapsed && (
+                <div className="mt-2.5 space-y-0.5 text-slate-600">
+                    <button
+                        type="button"
+                        onClick={() => navigate("/pendaftaran/registrasi-lama")}
+                        className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium hover:bg-slate-200/50 hover:text-slate-900 transition-colors"
+                    >
+                        <Search className="h-3.5 w-3.5 text-slate-400" />
+                        <span>Cari Pasien / Poli</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => navigate("/pendaftaran/antrean")}
+                        className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium hover:bg-slate-200/50 hover:text-slate-900 transition-colors"
+                    >
+                        <Inbox className="h-3.5 w-3.5 text-slate-400" />
+                        <span className="flex-1 text-left">Pesan & Notif</span>
+                    </button>
+                </div>
+            )}
         </div>
     );
 }
 
-/* ── Komponen utama Sidebar ── */
+function SidebarNav({ collapsed, onExpand }: { collapsed: boolean; onExpand?: () => void }) {
+    return (
+        <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-4 text-xs scrollbar-thin scrollbar-thumb-slate-200">
+            <div>
+                <p className={cn("px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400", collapsed && "text-center px-0")}>
+                    {collapsed ? "•••" : "Menu Utama"}
+                </p>
+                <div className="space-y-0.5">
+                    {navItems.slice(0, 2).map((item) => (
+                        <SidebarNavItem key={item.to} item={item} collapsed={collapsed} onExpand={onExpand} />
+                    ))}
+                </div>
+            </div>
+
+            <div>
+                <p className={cn("px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400", collapsed && "text-center px-0")}>
+                    {collapsed ? "•••" : "Layanan Medical"}
+                </p>
+                <div className="space-y-0.5">
+                    {navItems.slice(2, -1).map((item) => (
+                        <SidebarNavItem key={item.to} item={item} collapsed={collapsed} onExpand={onExpand} />
+                    ))}
+                </div>
+            </div>
+
+            <div>
+                <p className={cn("px-3 mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400", collapsed && "text-center px-0")}>
+                    {collapsed ? "•••" : "Pengaturan"}
+                </p>
+                <div className="space-y-0.5">
+                    {navItems.slice(-1).map((item) => (
+                        <SidebarNavItem key={item.to} item={item} collapsed={collapsed} onExpand={onExpand} />
+                    ))}
+                </div>
+            </div>
+        </nav>
+    );
+}
 
 interface SidebarProps {
     collapsed?: boolean;
@@ -338,57 +403,42 @@ interface SidebarProps {
 }
 
 export function Sidebar({ collapsed = false, mobileOpen = false, onToggle, onCloseMobile }: SidebarProps) {
+    const [isHovered, setIsHovered] = useState(false);
+
     return (
         <>
-            {/* Backdrop untuk mobile */}
             {mobileOpen && (
                 <div
-                    className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
+                    className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-xs lg:hidden"
                     onClick={onCloseMobile}
                 />
             )}
 
             <aside
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
                 className={cn(
-                    "fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-gray-200/60 shadow-sm transition-all duration-300",
+                    "fixed inset-y-0 left-0 z-50 flex flex-col bg-[#f4f5f7] border-r border-slate-200/80 transition-all duration-300 select-none shadow-xs",
                     "lg:flex",
                     mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-                    collapsed ? "lg:w-[76px]" : "lg:w-64",
-                    "w-64"
+                    collapsed ? "lg:w-[72px]" : "lg:w-60",
+                    "w-60"
                 )}
             >
-                {/* Tombol toggle (desktop) */}
-                <div className={cn("absolute top-5 right-3 z-10 hidden lg:block", collapsed && "right-2.5")}>
-                    <button
-                        type="button"
-                        onClick={onToggle}
-                        title={collapsed ? "Perluas menu" : "Ciutkan menu"}
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-all"
-                    >
-                        {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-                    </button>
-                </div>
-
-                {/* Tombol tutup (mobile) */}
-                <div className="absolute top-5 right-3 z-10 lg:hidden">
+                {/* Mobile Close Button */}
+                <div className="absolute top-3.5 right-3 z-10 lg:hidden">
                     <button
                         type="button"
                         onClick={onCloseMobile}
                         title="Tutup menu"
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition-all"
+                        className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-all"
                     >
                         <X className="h-4 w-4" />
                     </button>
                 </div>
 
-                <SidebarBrand collapsed={collapsed} onExpand={() => onToggle?.()} />
-                <SidebarNav
-                    collapsed={collapsed}
-                    onExpand={() => {
-                        onToggle?.();
-                    }}
-                />
-                <SidebarProfile collapsed={collapsed} />
+                <SidebarHeader collapsed={collapsed} isHovered={isHovered} onToggle={onToggle} />
+                <SidebarNav collapsed={collapsed} onExpand={() => onToggle?.()} />
             </aside>
         </>
     );

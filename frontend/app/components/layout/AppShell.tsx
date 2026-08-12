@@ -42,7 +42,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div
                 className={cn(
                     "transition-all duration-300",
-                    collapsed ? "lg:pl-[76px]" : "lg:pl-64"
+                    collapsed ? "lg:pl-[72px]" : "lg:pl-60"
                 )}
             >
                 <main className="space-y-6 p-4 lg:p-8 max-w-7xl mx-auto">{children}</main>

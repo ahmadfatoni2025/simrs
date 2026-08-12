@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "~/lib/api";
-import { AlertTriangle, CheckCircle2, FileUp, Printer, User } from "lucide-react";
+import { AlertTriangle, Camera, Check, CheckCircle2, FileUp, Folder, Printer, User, X } from "lucide-react";
 import { cn } from "~/lib/utils";
 
 interface PoliOption {
@@ -306,12 +306,30 @@ export default function FormRegistrasiKunjungan({ onSaved }: PendaftaranFormProp
             </fieldset>
 
             <fieldset>
-                <legend className="mb-3 text-xs font-bold uppercase tracking-wider text-indigo-500">
-                    Dokumen Pendukung
+                <legend className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-indigo-600">
+                    <FileUp className="h-4 w-4" /> Dokumen Pendukung & Foto Identitas
                 </legend>
-                <DocumentUpload label="KTP" value={form.upload_ktp} onChange={(v) => set("upload_ktp", v)} />
-                <DocumentUpload label="Kartu Keluarga (KK)" value={form.upload_kk} onChange={(v) => set("upload_kk", v)} />
-                <DocumentUpload label="Kartu BPJS" value={form.upload_bpjs} onChange={(v) => set("upload_bpjs", v)} />
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <DocumentCard
+                        title="KTP Pasien"
+                        description=""
+                        value={form.upload_ktp}
+                        onUpload={(val) => set("upload_ktp", val)}
+                    />
+                    <DocumentCard
+                        title="Kartu Keluarga (KK)"
+                        description=""
+                        value={form.upload_kk}
+                        onUpload={(val) => set("upload_kk", val)}
+                    />
+                    <DocumentCard
+                        title="Kartu BPJS / Asuransi"
+                        description=""
+                        value={form.upload_bpjs}
+                        onUpload={(val) => set("upload_bpjs", val)}
+                    />
+                </div>
             </fieldset>
 
             <fieldset>
@@ -390,5 +408,206 @@ export default function FormRegistrasiKunjungan({ onSaved }: PendaftaranFormProp
                 <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 border border-red-100">{error}</div>
             )}
         </form>
+    );
+}
+
+interface DocumentCardProps {
+    title: string;
+    description: string;
+    value: string;
+    onUpload: (dataUrl: string) => void;
+}
+
+function DocumentCard({ title, description, value, onUpload }: DocumentCardProps) {
+    const [cameraOpen, setCameraOpen] = useState(false);
+
+    function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            if (typeof event.target?.result === "string") {
+                onUpload(event.target.result);
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+
+    return (
+        <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-slate-50/50 p-4 transition-all hover:border-slate-300 hover:bg-white shadow-2xs">
+            <div>
+                <div className="flex items-center justify-between mb-1">
+                    <h3 className="text-xs font-bold text-slate-800">{title}</h3>
+                    {value ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200/60">
+                            <CheckCircle2 className="h-3 w-3" /> Terupload
+                        </span>
+                    ) : (
+                        <span className="text-[10px] font-medium text-slate-400">Opsional</span>
+                    )}
+                </div>
+                <p className="text-[11px] text-slate-400 mb-3">{description}</p>
+
+                {/* Container Image Preview */}
+                <div className="relative mb-3 flex h-40 w-full items-center justify-center overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    {value ? (
+                        <>
+                            <img src={value} alt={title} className="h-full w-full object-contain p-1" />
+                            <button
+                                type="button"
+                                onClick={() => onUpload("")}
+                                className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-slate-900/80 text-white backdrop-blur-xs transition-colors hover:bg-red-600"
+                                title="Hapus foto"
+                            >
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center text-slate-400 text-center p-3">
+                            <FileUp className="h-8 w-8 stroke-[1.5] text-slate-300 mb-1" />
+                            <p className="text-[11px] font-medium text-slate-400">Belum ada dokumen</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Action buttons */}
+            <div className="grid grid-cols-2 gap-2">
+                <label className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors">
+                    <input type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+                    <Folder className="h-3.5 w-3.5 text-slate-500" />
+                    <span>Pilih File</span>
+                </label>
+                <button
+                    type="button"
+                    onClick={() => setCameraOpen(true)}
+                    className="flex items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                >
+                    <Camera className="h-3.5 w-3.5 text-indigo-600" />
+                    <span>Kamera</span>
+                </button>
+            </div>
+
+            {cameraOpen && (
+                <CameraModal
+                    title={title}
+                    onCapture={(dataUrl) => {
+                        onUpload(dataUrl);
+                        setCameraOpen(false);
+                    }}
+                    onClose={() => setCameraOpen(false)}
+                />
+            )}
+        </div>
+    );
+}
+
+function CameraModal({
+    title,
+    onCapture,
+    onClose,
+}: {
+    title: string;
+    onCapture: (dataUrl: string) => void;
+    onClose: () => void;
+}) {
+    const [stream, setStream] = useState<MediaStream | null>(null);
+    const [cameraError, setCameraError] = useState("");
+    const videoRef = useState<HTMLVideoElement | null>(null)[0];
+
+    useEffect(() => {
+        let activeStream: MediaStream | null = null;
+        navigator.mediaDevices
+            ?.getUserMedia({ video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } })
+            .then((s) => {
+                activeStream = s;
+                setStream(s);
+            })
+            .catch((err) => {
+                setCameraError(err instanceof Error ? err.message : "Tidak dapat mengakses kamera perangkat.");
+            });
+
+        return () => {
+            if (activeStream) {
+                activeStream.getTracks().forEach((track) => track.stop());
+            }
+        };
+    }, []);
+
+    function takeSnapshot() {
+        const video = document.getElementById("webcam-video-element") as HTMLVideoElement;
+        if (!video) return;
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+            onCapture(dataUrl);
+        }
+    }
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
+            <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl animate-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                    <div>
+                        <h3 className="text-sm font-bold text-slate-900">Ambil Foto {title}</h3>
+                        <p className="text-[11px] text-slate-400">Posisikan dokumen tepat di tengah kamera</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-all"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+
+                <div className="relative aspect-video w-full bg-slate-950 flex items-center justify-center">
+                    {cameraError ? (
+                        <div className="p-6 text-center text-xs text-red-400 space-y-2">
+                            <AlertTriangle className="h-8 w-8 mx-auto text-red-500" />
+                            <p>{cameraError}</p>
+                            <p className="text-[11px] text-slate-400">Pastikan izin kamera sudah diberikan pada browser anda.</p>
+                        </div>
+                    ) : (
+                        <video
+                            id="webcam-video-element"
+                            autoPlay
+                            playsInline
+                            ref={(node) => {
+                                if (node && stream) {
+                                    node.srcObject = stream;
+                                }
+                            }}
+                            className="h-full w-full object-cover"
+                        />
+                    )}
+                </div>
+
+                <div className="flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50/50 px-5 py-4">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+                    >
+                        Batal
+                    </button>
+                    <button
+                        type="button"
+                        onClick={takeSnapshot}
+                        disabled={!stream || !!cameraError}
+                        className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                    >
+                        <Camera className="h-4 w-4 text-white" />
+                        <span>Ambil Gambar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     );
 }

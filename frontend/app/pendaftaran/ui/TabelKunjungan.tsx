@@ -54,13 +54,13 @@ function statusToken(s: unknown): string {
 function channelToken(row: Row): string {
     const src = String(
         row.sumber_pendaftaran ??
-            row.sumber ??
-            row.channel ??
-            row.jenis_pendaftaran ??
-            row.cara_daftar ??
-            row.kategori ??
-            row.penjamin ??
-            ""
+        row.sumber ??
+        row.channel ??
+        row.jenis_pendaftaran ??
+        row.cara_daftar ??
+        row.kategori ??
+        row.penjamin ??
+        ""
     ).toLowerCase();
     if (src.includes("booking") || src.includes("reservasi") || src.includes("online")) return "Booking";
     if (src.includes("bpjs")) return "BPJS";
@@ -168,9 +168,9 @@ export default function TabelKunjungan({
     const shown = grouped[activeTab] ?? [];
 
     return (
-        <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-hidden ">
+        <div className="rounded-lg border border-slate-200 bg-white shadow-sm overflow-clip">
             {/* Header */}
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
+            <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
                 <div>
                     <h2 className="text-sm font-bold uppercase tracking-wide text-slate-800">
                         Daftar Kunjungan Rawat Jalan

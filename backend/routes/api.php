@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\MasterData\AkunController;
+use App\Http\Controllers\Api\MasterData\MasterDataCatalogController;
 use App\Http\Controllers\Api\MasterData\MasterDiagnosaKeperawatanController;
 use App\Http\Controllers\Api\MasterData\MasterIcdXController;
 use App\Http\Controllers\Api\MasterData\MasterKamarController;
@@ -26,7 +27,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/pendaftaran', [PendaftaranController::class, 'index']);
     Route::post('/pendaftaran', [PendaftaranController::class, 'store']);
-    Route::get('/pendaftaran/{id}', [PendaftaranController::class, 'show']);
 });
 
 Route::prefix('master-data')
@@ -41,6 +41,13 @@ Route::prefix('master-data')
         Route::apiResource('icd-x', MasterIcdXController::class)->only(['index', 'show']);
         Route::apiResource('diagnosa-keperawatan', MasterDiagnosaKeperawatanController::class)->only(['index', 'show']);
         Route::apiResource('penjamin', MasterPenjaminController::class)->only(['index', 'show']);
+
+        // Katalog Master Data generik (baca untuk semua pengguna terautentikasi)
+        Route::prefix('catalog')->group(function () {
+            Route::get('options/{entity}', [MasterDataCatalogController::class, 'options'])->where('entity', '[a-z0-9-]+');
+            Route::get('{entity}', [MasterDataCatalogController::class, 'index'])->where('entity', '[a-z0-9-]+');
+            Route::get('{entity}/{id}', [MasterDataCatalogController::class, 'show'])->where('entity', '[a-z0-9-]+')->whereNumber('id');
+        });
     });
 
 Route::prefix('master-data')
@@ -55,4 +62,11 @@ Route::prefix('master-data')
         Route::apiResource('icd-x', MasterIcdXController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('diagnosa-keperawatan', MasterDiagnosaKeperawatanController::class)->only(['store', 'update', 'destroy']);
         Route::apiResource('penjamin', MasterPenjaminController::class)->only(['store', 'update', 'destroy']);
+
+        // Katalog Master Data generik (tulis hanya untuk super/admin)
+        Route::prefix('catalog')->group(function () {
+            Route::post('{entity}', [MasterDataCatalogController::class, 'store'])->where('entity', '[a-z0-9-]+');
+            Route::match(['put', 'patch'], '{entity}/{id}', [MasterDataCatalogController::class, 'update'])->where('entity', '[a-z0-9-]+')->whereNumber('id');
+            Route::delete('{entity}/{id}', [MasterDataCatalogController::class, 'destroy'])->where('entity', '[a-z0-9-]+')->whereNumber('id');
+        });
     });
