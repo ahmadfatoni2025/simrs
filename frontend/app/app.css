@@ -171,3 +171,45 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* Styling Cetak Khusus Formulir RM-01 & Dokumen SIMRS */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Sembunyikan seluruh elemen UI default aplikasi SIMRS */
+  body * {
+    visibility: hidden !important;
+  }
+
+  /* Tampilkan HANYA kontainer Formulir RM-01 dan semua isinya */
+  .printable-rm01-document,
+  .printable-rm01-document * {
+    visibility: visible !important;
+  }
+
+  .printable-rm01-document {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Sembunyikan tombol aksi dan elemen non-cetak */
+  .no-print,
+  .print\:hidden {
+    display: none !important;
+  }
+}

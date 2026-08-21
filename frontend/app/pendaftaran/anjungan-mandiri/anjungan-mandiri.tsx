@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { CreditCard, Fingerprint, MonitorSmartphone, ScanLine, Ticket } from "lucide-react";
+import { AlertTriangle, CreditCard, Fingerprint, MonitorSmartphone, ScanLine, Ticket, X } from "lucide-react";
 import { cn } from "~/lib/utils";
-import { EmptyState, FeatureShell } from "../ui/FeatureShell";
+import { FeatureShell } from "../ui/FeatureShell";
 
 const modes = [
     { key: "KTP", label: "Scan KTP", icon: CreditCard },
@@ -13,10 +13,19 @@ const modes = [
 export default function AnjunganMandiri() {
     const [mode, setMode] = useState("KTP");
     const [nik, setNik] = useState("");
-    const [identitasValid, setIdentitasValid] = useState(false);
+    const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
     function validasi() {
-        setIdentitasValid(/^\d{16}$/.test(nik));
+        setAlertMessage(`🚧 Fitur Anjungan Mandiri (Kiosk) Sedang Dalam Pengembangan. Integrasi perangkat keras scanner ${mode} dan tiket antrean sedang dikembangkan.`);
+    }
+
+    function handleModeClick(key: string, label: string) {
+        setMode(key);
+        setAlertMessage(`🚧 Fitur Mode '${label}' Sedang Dalam Pengembangan. Koneksi ke scanner ${label} fisik sedang dikonfigurasi.`);
+    }
+
+    function handleStepClick(stepName: string) {
+        setAlertMessage(`🚧 Fitur Langkah '${stepName}' Sedang Dalam Pengembangan.`);
     }
 
     return (
@@ -29,18 +38,37 @@ export default function AnjunganMandiri() {
                 </span>
             }
         >
+            {/* Banner Notifikasi UI Alert */}
+            {alertMessage && (
+                <div className="mb-5 flex items-start justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-sm animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white font-bold shadow-2xs">
+                            <AlertTriangle className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-amber-900">Fitur Dalam Pengembangan</p>
+                            <p className="mt-0.5 text-xs text-amber-800 leading-relaxed">{alertMessage}</p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setAlertMessage(null)}
+                        className="rounded-lg p-1 text-amber-600 hover:bg-amber-100 transition-colors"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+            )}
+
             <div className="grid gap-5 lg:grid-cols-2">
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">Validasi Identitas</h2>
+                    <h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">Validasi Identitas Kiosk</h2>
                     <div className="mt-4 grid grid-cols-4 gap-2">
                         {modes.map((m) => (
                             <button
                                 key={m.key}
                                 type="button"
-                                onClick={() => {
-                                    setMode(m.key);
-                                    setIdentitasValid(false);
-                                }}
+                                onClick={() => handleModeClick(m.key, m.label)}
                                 className={cn(
                                     "flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-[11px] font-semibold transition-colors",
                                     mode === m.key
@@ -54,7 +82,7 @@ export default function AnjunganMandiri() {
                         ))}
                     </div>
 
-                    <label className="mt-5 block text-xs font-semibold text-slate-500">Nomor Identitas (NIK)</label>
+                    <label className="mt-5 block text-xs font-semibold text-slate-500">Nomor Identitas Pasien (NIK)</label>
                     <input
                         value={nik}
                         onChange={(e) => setNik(e.target.value.replace(/\D/g, "").slice(0, 16))}
@@ -64,48 +92,32 @@ export default function AnjunganMandiri() {
                     <button
                         type="button"
                         onClick={validasi}
-                        disabled={!nik}
-                        className="mt-3 w-full rounded-lg bg-indigo-600 py-3 text-sm font-bold text-white hover:bg-indigo-500 disabled:opacity-50"
+                        className="mt-3 w-full rounded-lg bg-indigo-600 py-3 text-sm font-bold text-white hover:bg-indigo-500 transition-colors"
                     >
-                        Validasi Identitas
+                        Validasi Identitas Pasien
                     </button>
-
-                    {identitasValid ? (
-                        <p className="mt-3 rounded-lg bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-                            Identitas valid. Silakan pilih poli dan dokter pada langkah berikutnya.
-                        </p>
-                    ) : (
-                        nik && !identitasValid && (
-                            <p className="mt-3 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                                NIK harus terdiri dari 16 digit angka.
-                            </p>
-                        )
-                    )}
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">Langkah Selanjutnya</h2>
-                    {identitasValid ? (
-                        <div className="mt-4 space-y-2.5">
-                            {["Pilih Poli", "Pilih Dokter", "Pilih Jadwal", "Generate Antrean", "Cetak Tiket"].map((step, i) => (
-                                <div
-                                    key={step}
-                                    className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm"
-                                >
+                    <h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">Alur Anjungan Mandiri</h2>
+                    <div className="mt-4 space-y-2.5">
+                        {["Scan KTP / Kartu BPJS", "Pilih Poli Tujuan", "Pilih Dokter & Jam", "Generate Nomor Antrean", "Cetak Tiket Antrean"].map((step, i) => (
+                            <button
+                                key={step}
+                                type="button"
+                                onClick={() => handleStepClick(step)}
+                                className="w-full flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-left hover:bg-indigo-50 hover:border-indigo-200 transition-all group"
+                            >
+                                <div className="flex items-center gap-3">
                                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-600 text-[11px] font-bold text-white">
                                         {i + 1}
                                     </span>
-                                    <span className="font-medium text-slate-700">{step}</span>
+                                    <span className="font-medium text-slate-700 group-hover:text-indigo-900">{step}</span>
                                 </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <EmptyState
-                            icon={<ScanLine className="h-8 w-8 text-slate-300" />}
-                            title="Validasi identitas terlebih dahulu"
-                            description="Lakukan scan KTP/BPJS/Kartu pasien atau input NIK untuk melanjutkan."
-                        />
-                    )}
+                                <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5">Dev</span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
             </div>
         </FeatureShell>

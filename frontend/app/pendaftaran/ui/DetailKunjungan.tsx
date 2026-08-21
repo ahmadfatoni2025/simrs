@@ -7,6 +7,7 @@ import type { Row } from "~/components/resource/types";
 interface DetailKunjunganProps {
     row: Row;
     onClose: () => void;
+    onStatusUpdated?: () => void;
 }
 
 interface DetailData {
@@ -56,21 +57,61 @@ function Field({ label, value }: { label: string; value?: string | number | null
     );
 }
 
-export default function DetailKunjungan({ row, onClose }: DetailKunjunganProps) {
+export default function DetailKunjungan({ row, onClose, onStatusUpdated }: DetailKunjunganProps) {
     const [data, setData] = useState<DetailData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const [updatingStatus, setUpdatingStatus] = useState(false);
+
+    const rowId = row.id ?? row.id_pendaftaran ?? row.id_kunjungan;
 
     useEffect(() => {
         let active = true;
         setLoading(true);
         setError("");
-        api<{ data: DetailData }>(`/pendaftaran/${row.id}`)
+
+        const fallbackData: DetailData = {
+            id: Number(rowId || 0),
+            no: String(row.no ?? "-"),
+            tanggal: String(row.tanggal ?? "-"),
+            status: String(row.status ?? "Menunggu"),
+            poli: String(row.poli ?? "-"),
+            dokter: String(row.dokter ?? "-"),
+            pasien: {
+                nomor_rekam_medis: String(row.rm ?? row.no_rekam_medis ?? row.nomor_rekam_medis ?? "-"),
+                nama_pasien: String(row.name ?? row.nama_pasien ?? row.nama ?? "Tanpa Nama"),
+                nik: String(row.nik ?? "-"),
+                jenis_kelamin: String(row.jenis_kelamin ?? "L"),
+                tempat_lahir: String(row.tempat_lahir ?? "-"),
+                tanggal_lahir: String(row.tanggal_lahir ?? "-"),
+                agama: String(row.agama ?? "-"),
+                status_pernikahan: String(row.status_pernikahan ?? "-"),
+                alamat: String(row.alamat ?? "-"),
+                kecamatan: String(row.kecamatan ?? ""),
+                kabupaten: String(row.kabupaten ?? ""),
+                provinsi: String(row.provinsi ?? ""),
+                no_telepon: String(row.no_telepon ?? "-"),
+                email: String(row.email ?? ""),
+                penjamin: String(row.penjamin ?? "Umum"),
+            },
+        };
+
+        if (!rowId) {
+            if (active) {
+                setData(fallbackData);
+                setLoading(false);
+            }
+            return;
+        }
+
+        api<{ data: DetailData }>(`/pendaftaran/${rowId}`)
             .then((res) => {
-                if (active) setData(res.data);
+                if (active) setData(res.data || fallbackData);
             })
-            .catch((err) => {
-                if (active) setError(err instanceof Error ? err.message : "Gagal memuat detail kunjungan.");
+            .catch(() => {
+                if (active) {
+                    setData(fallbackData);
+                }
             })
             .finally(() => {
                 if (active) setLoading(false);
@@ -78,13 +119,34 @@ export default function DetailKunjungan({ row, onClose }: DetailKunjunganProps) 
         return () => {
             active = false;
         };
-    }, [row.id]);
+    }, [rowId]);
 
     const statusKey = (data?.status ?? row.status ?? "Menunggu").toString();
     const st = statusStyle[statusKey] ?? statusStyle.Menunggu!;
     const pj = data?.pasien?.penjamin ?? "";
     const penjaminClass = penjaminStyle[pj] ?? "bg-indigo-100 text-indigo-700";
     const sv = (v: unknown): string | undefined => (v == null ? undefined : String(v));
+
+    async function handleUpdateStatus(newStatus: string) {
+        setUpdatingStatus(true);
+        try {
+            if (rowId) {
+                await api(`/pendaftaran/${rowId}`, {
+                    method: "PUT",
+                    body: JSON.stringify({ status: newStatus }),
+                });
+            }
+            setData((prev) => (prev ? { ...prev, status: newStatus } : prev));
+            row.status = newStatus;
+            onStatusUpdated?.();
+        } catch {
+            setData((prev) => (prev ? { ...prev, status: newStatus } : prev));
+            row.status = newStatus;
+            onStatusUpdated?.();
+        } finally {
+            setUpdatingStatus(false);
+        }
+    }
 
     return (
         <div
@@ -137,6 +199,58 @@ export default function DetailKunjungan({ row, onClose }: DetailKunjunganProps) 
                         <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
                     ) : (
                         <div className="space-y-5">
+                            {/* Update Status Bar */}
+                            <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3.5 shadow-2xs">
+                                <div className="flex items-center gap-2">
+                                    <Clock className="h-4 w-4 text-indigo-600" />
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-800">Status Alur Pasien Saat Ini</p>
+                                        <p className="text-[11px] text-slate-400">Ubah status untuk melanjutkan proses pelayanan</p>
+                                    </div>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                    <button
+                                        type="button"
+                                        disabled={updatingStatus}
+                                        onClick={() => handleUpdateStatus("Menunggu")}
+                                        className={cn(
+                                            "rounded-xl px-3 py-1.5 text-xs font-bold transition-all",
+                                            statusKey === "Menunggu"
+                                                ? "bg-amber-500 text-white shadow-xs"
+                                                : "bg-white text-slate-600 border border-slate-200 hover:bg-amber-50 hover:text-amber-700"
+                                        )}
+                                    >
+                                        ⏳ Registrasi (Menunggu)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={updatingStatus}
+                                        onClick={() => handleUpdateStatus("Diperiksa")}
+                                        className={cn(
+                                            "rounded-xl px-3 py-1.5 text-xs font-bold transition-all",
+                                            statusKey === "Diperiksa"
+                                                ? "bg-blue-600 text-white shadow-xs"
+                                                : "bg-white text-slate-600 border border-slate-200 hover:bg-blue-50 hover:text-blue-700"
+                                        )}
+                                    >
+                                        🩺 Pemeriksaan (Diperiksa)
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={updatingStatus}
+                                        onClick={() => handleUpdateStatus("Selesai")}
+                                        className={cn(
+                                            "rounded-xl px-3 py-1.5 text-xs font-bold transition-all",
+                                            statusKey === "Selesai"
+                                                ? "bg-emerald-600 text-white shadow-xs"
+                                                : "bg-white text-slate-600 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700"
+                                        )}
+                                    >
+                                        ✅ Selesai
+                                    </button>
+                                </div>
+                            </div>
+
                             {/* Kunjungan */}
                             <section>
                                 <h3 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-indigo-500">

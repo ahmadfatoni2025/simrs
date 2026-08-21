@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { FileCheck2, FileX2, FilePen, RefreshCw, ShieldCheck } from "lucide-react";
+import { AlertTriangle, FileCheck2, FileX2, FilePen, RefreshCw, ShieldCheck, X } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { FeatureShell } from "../ui/FeatureShell";
 
@@ -14,18 +14,21 @@ export default function BridgingBPJS() {
     const [action, setAction] = useState("sep");
     const [noBpjs, setNoBpjs] = useState("");
     const [noSep, setNoSep] = useState("");
-    const [result, setResult] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    const [alertMessage, setAlertMessage] = useState<string | null>(null);
+
+    function handleActionClick(key: string, label: string) {
+        setAction(key);
+        setAlertMessage(`🚧 Fitur '${label}' Sedang Dalam Pengembangan. Integrasi VClaim BPJS versi terbaru sedang disiapkan.`);
+    }
 
     function handleSubmit(e: FormEvent) {
         e.preventDefault();
-        setError(null);
-        if (!/^\d{13}$/.test(noBpjs)) {
-            setError("Nomor BPJS harus 13 digit.");
-            return;
-        }
         const label = actions.find((a) => a.key === action)?.label ?? action;
-        setResult(`${label} berhasil dilakukan untuk peserta ${noBpjs}${noSep ? ` · SEP ${noSep}` : ""}.`);
+        setAlertMessage(`🚧 Fitur '${label}' Sedang Dalam Pengembangan. Panggilan Web Service VClaim BPJS sedang dalam tahap integrasi.`);
+    }
+
+    function handleFeatureClick(name: string) {
+        setAlertMessage(`🚧 Fitur '${name}' Sedang Dalam Pengembangan. Modul BPJS ini akan aktif pada rilis berikutnya.`);
     }
 
     return (
@@ -33,6 +36,28 @@ export default function BridgingBPJS() {
             title="Bridging BPJS"
             subtitle="Validasi peserta, generate/update/cancel SEP, finger print, surat kontrol, dan cek rujukan"
         >
+            {/* Banner Notifikasi UI Alert */}
+            {alertMessage && (
+                <div className="mb-5 flex items-start justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-sm animate-in fade-in slide-in-from-top-2">
+                    <div className="flex items-start gap-3">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white font-bold shadow-2xs">
+                            <AlertTriangle className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-amber-900">Fitur Dalam Pengembangan</p>
+                            <p className="mt-0.5 text-xs text-amber-800 leading-relaxed">{alertMessage}</p>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => setAlertMessage(null)}
+                        className="rounded-lg p-1 text-amber-600 hover:bg-amber-100 transition-colors"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+            )}
+
             <div className="grid gap-5 lg:grid-cols-3">
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
                     <div className="flex flex-wrap gap-2">
@@ -40,7 +65,7 @@ export default function BridgingBPJS() {
                             <button
                                 key={a.key}
                                 type="button"
-                                onClick={() => setAction(a.key)}
+                                onClick={() => handleActionClick(a.key, a.label)}
                                 className={cn(
                                     "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors",
                                     action === a.key ? "bg-indigo-600 text-white" : "bg-slate-100 text-slate-600 hover:bg-slate-200"
@@ -73,22 +98,25 @@ export default function BridgingBPJS() {
                                 />
                             </div>
                         )}
-                        <button type="submit" className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-5 py-2 text-sm font-bold text-white hover:bg-indigo-500">
-                            <RefreshCw className="h-4 w-4" /> Proses
+                        <button type="submit" className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-5 py-2 text-sm font-bold text-white hover:bg-indigo-500 transition-colors">
+                            <RefreshCw className="h-4 w-4" /> Proses Bridging BPJS
                         </button>
                     </form>
-
-                    {error && <p className="mt-3 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>}
-                    {result && <p className="mt-3 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{result}</p>}
                 </div>
 
                 <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">Fitur Lainnya</h2>
+                    <h2 className="text-sm font-bold uppercase tracking-wide text-slate-700">Fitur BPJS Lainnya</h2>
                     <div className="mt-3 space-y-2">
-                        {["Finger Print", "Surat Kontrol", "Cek Rujukan", "Riwayat SEP"].map((f) => (
-                            <div key={f} className="rounded-lg bg-slate-50 px-3 py-2.5 text-xs font-medium text-slate-600">
-                                {f}
-                            </div>
+                        {["Finger Print BPJS", "Surat Kontrol & SKDP", "Cek Rujukan Faskes", "Riwayat Histori SEP"].map((f) => (
+                            <button
+                                key={f}
+                                type="button"
+                                onClick={() => handleFeatureClick(f)}
+                                className="w-full text-left rounded-xl bg-slate-50 border border-slate-200 px-3.5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all flex items-center justify-between group"
+                            >
+                                <span>{f}</span>
+                                <span className="rounded-full bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 group-hover:bg-amber-200">Dev</span>
+                            </button>
                         ))}
                     </div>
                 </div>

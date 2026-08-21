@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { api } from "~/lib/api";
-import { AlertTriangle, Camera, Check, CheckCircle2, FileUp, Folder, Printer, User, X } from "lucide-react";
+import { AlertTriangle, Camera, Check, CheckCircle2, FileText, FileUp, Folder, Printer, User, X } from "lucide-react";
 import { cn } from "~/lib/utils";
+import { FormulirRM01, type DataRM01 } from "./FormulirRM01";
 
 interface PoliOption {
     id_sub_unit_pegawai: number;
@@ -65,6 +66,7 @@ export default function FormRegistrasiKunjungan({ onSaved }: PendaftaranFormProp
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState("");
     const [duplicate, setDuplicate] = useState<{ rm: string; name: string } | null>(null);
+    const [viewMode, setViewMode] = useState<"FORM" | "RM01">("FORM");
 
     const [form, setForm] = useState({
         nama_pasien: "",
@@ -148,6 +150,24 @@ export default function FormRegistrasiKunjungan({ onSaved }: PendaftaranFormProp
 
     const nikValid = form.nik.length === 0 || /^\d{16}$/.test(form.nik);
 
+    const selectedPoliName = polis.find((p) => p.id_sub_unit_pegawai === Number(form.id_poli))?.nama_sub_unit_pegawai || "";
+    const selectedDokterName = dokters.find((d) => d.id_pegawai === Number(form.id_dokter))?.nama_pegawai || "";
+
+    const dataRM01: DataRM01 = {
+        no_rekam_medis: previewRM(),
+        nama_pasien: form.nama_pasien,
+        jenis_kelamin: form.jenis_kelamin,
+        tanggal_lahir: form.tanggal_lahir,
+        agama: form.agama,
+        status_pernikahan: form.status_pernikahan,
+        alamat: `${form.alamat}${form.kecamatan ? `, Kec. ${form.kecamatan}` : ""}${form.kabupaten ? `, ${form.kabupaten}` : ""}${form.provinsi ? `, ${form.provinsi}` : ""}`,
+        no_telepon: form.no_telepon,
+        penanggung_biaya: form.penjamin || "Umum",
+        diagnosa_masuk: selectedPoliName ? `Poliklinik ${selectedPoliName}` : "-",
+        dokter_merawat: selectedDokterName,
+        tanggal_mrs: form.tanggal,
+    };
+
     async function handleSubmit(e: FormEvent) {
         e.preventDefault();
         setSubmitting(true);
@@ -182,30 +202,55 @@ export default function FormRegistrasiKunjungan({ onSaved }: PendaftaranFormProp
     }
 
     return (
-        <form
-            onSubmit={handleSubmit}
-            className="h-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6"
-        >
+        <div className="h-full rounded-2xl border border-slate-200 bg-white p-6 shadow-sm space-y-6">
             <div className="flex items-center justify-between flex-wrap gap-3 border-b border-slate-100 pb-4">
                 <div>
                     <h2 className="text-base font-extrabold text-slate-900">Registrasi Pasien Baru</h2>
                     <p className="text-xs font-medium text-slate-400">Lengkapi biodata, pilih penjamin dan poliklinik tujuan</p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1 text-[11px] font-semibold text-indigo-600">
-                        <User className="h-3 w-3" />
-                        No. RM: <span className="font-mono">{previewRM()}</span>
-                    </span>
+                <div className="flex flex-wrap items-center gap-2">
+                    {/* View Switcher Tabs */}
+                    <div className="flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200">
+                        <button
+                            type="button"
+                            onClick={() => setViewMode("FORM")}
+                            className={cn(
+                                "flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition-all",
+                                viewMode === "FORM" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-900"
+                            )}
+                        >
+                            <User className="h-3.5 w-3.5" /> Input Form
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setViewMode("RM01")}
+                            className={cn(
+                                "flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-semibold transition-all",
+                                viewMode === "RM01" ? "bg-slate-900 text-white shadow-2xs" : "text-slate-500 hover:text-slate-900"
+                            )}
+                        >
+                            <FileText className="h-3.5 w-3.5" /> Cetak Formulir RM-01
+                        </button>
+                    </div>
+
                     <button
                         type="button"
-                        onClick={() => window.print()}
-                        title="Cetak kartu pasien"
-                        className="inline-flex items-center gap-1.5 rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                        onClick={() => {
+                            setViewMode("RM01");
+                            setTimeout(() => window.print(), 100);
+                        }}
+                        title="Cetak formulir RM-01"
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-colors"
                     >
-                        <Printer className="h-3.5 w-3.5" /> Cetak
+                        <Printer className="h-3.5 w-3.5 text-slate-500" /> Cetak RM-01
                     </button>
                 </div>
             </div>
+
+            {viewMode === "RM01" ? (
+                <FormulirRM01 data={dataRM01} />
+            ) : (
+                <form onSubmit={handleSubmit} className="space-y-6">
 
             <fieldset>
                 <legend className="mb-3 text-xs font-bold uppercase tracking-wider text-indigo-500">
@@ -408,7 +453,9 @@ export default function FormRegistrasiKunjungan({ onSaved }: PendaftaranFormProp
                 <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 border border-red-100">{error}</div>
             )}
         </form>
-    );
+      )}
+    </div>
+  );
 }
 
 interface DocumentCardProps {

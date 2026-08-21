@@ -111,29 +111,71 @@ const navItems: NavItem[] = [
         children: masterDataNavItems,
     },
     {
-        label: "Pendaftaran Pasien",
+        label: "Management Pasien",
         to: "/pendaftaran",
         icon: Users,
         children: [
-            { label: "Registrasi Pasien Baru", to: "/pendaftaran/registrasi-baru", icon: UserPlus },
-            { label: "Registrasi Pasien Lama", to: "/pendaftaran/registrasi-lama", icon: UserSearch },
-            { label: "Anjungan Mandiri", to: "/pendaftaran/anjungan-mandiri", icon: MonitorSmartphone },
-            { label: "Jadwal Dokter", to: "/pendaftaran/jadwal-dokter", icon: CalendarClock },
-            { label: "Pilih Poli", to: "/pendaftaran/pilih-poli", icon: Stethoscope },
-            { label: "Antrean", to: "/pendaftaran/antrean", icon: ClipboardList },
-            { label: "Booking Appointment", to: "/pendaftaran/booking", icon: CalendarClock },
-            { label: "Validasi Penjamin", to: "/pendaftaran/validasi-penjamin", icon: ShieldCheck },
-            { label: "Bridging BPJS", to: "/pendaftaran/bridging-bpjs", icon: RefreshCw },
-            { label: "Bridging SATUSEHAT", to: "/pendaftaran/bridging-satusehat", icon: Network },
-            { label: "Riwayat Kunjungan", to: "/pendaftaran/riwayat", icon: History },
-            { label: "Cetak Dokumen", to: "/pendaftaran/cetak-dokumen", icon: Printer },
-            { label: "Upload Dokumen", to: "/pendaftaran/upload-dokumen", icon: FileUp },
-            { label: "Mutasi Registrasi", to: "/pendaftaran/mutasi", icon: ArrowLeftRight },
-            { label: "Pembatalan Registrasi", to: "/pendaftaran/pembatalan", icon: XCircle },
-            { label: "Monitoring Registrasi", to: "/pendaftaran/monitoring", icon: Activity },
-            { label: "Audit Log", to: "/pendaftaran/audit-log", icon: FileText },
-            { label: "Laporan", to: "/pendaftaran/laporan", icon: BarChart3 },
-            { label: "Pengaturan", to: "/pendaftaran/pengaturan", icon: Settings },
+            {
+                label: "Registrasi Pasien",
+                to: "/pendaftaran/registrasi-baru",
+                icon: UserPlus,
+                children: [
+                    { label: "Registrasi Pasien Baru", to: "/pendaftaran/registrasi-baru", icon: UserPlus },
+                    { label: "Registrasi Pasien Lama", to: "/pendaftaran/registrasi-lama", icon: UserSearch },
+                    { label: "Anjungan Mandiri", to: "/pendaftaran/anjungan-mandiri", icon: MonitorSmartphone },
+                    { label: "Jadwal Dokter", to: "/pendaftaran/jadwal-dokter", icon: CalendarClock },
+                    { label: "Pilih Poli", to: "/pendaftaran/pilih-poli", icon: Stethoscope },
+                ],
+            },
+            {
+                label: "Antrean & Booking",
+                to: "/pendaftaran/antrean",
+                icon: ClipboardList,
+                children: [
+                    { label: "Antrean", to: "/pendaftaran/antrean", icon: ClipboardList },
+                    { label: "Booking Appointment", to: "/pendaftaran/booking", icon: CalendarClock },
+                ],
+            },
+            {
+                label: "Penjamin & Bridging",
+                to: "/pendaftaran/validasi-penjamin",
+                icon: ShieldCheck,
+                children: [
+                    { label: "Validasi Penjamin", to: "/pendaftaran/validasi-penjamin", icon: ShieldCheck },
+                    { label: "Bridging BPJS", to: "/pendaftaran/bridging-bpjs", icon: RefreshCw },
+                    { label: "Bridging SATUSEHAT", to: "/pendaftaran/bridging-satusehat", icon: Network },
+                ],
+            },
+            {
+                label: "Riwayat & Dokumen",
+                to: "/pendaftaran/riwayat",
+                icon: History,
+                children: [
+                    { label: "Riwayat Kunjungan", to: "/pendaftaran/riwayat", icon: History },
+                    { label: "Cetak Dokumen", to: "/pendaftaran/cetak-dokumen", icon: Printer },
+                    { label: "Upload Dokumen", to: "/pendaftaran/upload-dokumen", icon: FileUp },
+                ],
+            },
+            {
+                label: "Operasional & Monitor",
+                to: "/pendaftaran/monitoring",
+                icon: Activity,
+                children: [
+                    { label: "Monitoring Registrasi", to: "/pendaftaran/monitoring", icon: Activity },
+                    { label: "Mutasi Registrasi", to: "/pendaftaran/mutasi", icon: ArrowLeftRight },
+                    { label: "Pembatalan Registrasi", to: "/pendaftaran/pembatalan", icon: XCircle },
+                ],
+            },
+            {
+                label: "Audit & Pelaporan",
+                to: "/pendaftaran/laporan",
+                icon: BarChart3,
+                children: [
+                    { label: "Audit Log", to: "/pendaftaran/audit-log", icon: FileText },
+                    { label: "Laporan Pendaftaran", to: "/pendaftaran/laporan", icon: BarChart3 },
+                    { label: "Pengaturan Pendaftaran", to: "/pendaftaran/pengaturan", icon: Settings },
+                ],
+            },
         ],
     },
     { label: "Jadwal Dokter", to: "/jadwal-dokter", icon: CalendarClock },
@@ -144,6 +186,15 @@ const navItems: NavItem[] = [
     { label: "Laporan", to: "/laporan", icon: BarChart3 },
     { label: "Pengaturan", to: "/pengaturan", icon: Settings },
 ];
+
+function isNavActive(item: NavItem, currentPath: string): boolean {
+    if (item.to === currentPath) return true;
+    if (item.to !== "/" && item.to !== "/pendaftaran" && currentPath.startsWith(item.to)) return true;
+    if (item.children && item.children.length > 0) {
+        return item.children.some((child) => isNavActive(child, currentPath));
+    }
+    return false;
+}
 
 function SidebarLink({
     item,
@@ -164,16 +215,30 @@ function SidebarLink({
             end
             className={({ isActive }) =>
                 cn(
-                    "group flex items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-150",
-                    collapsed ? "justify-center px-0" : depth > 0 && "pl-9 text-slate-500",
+                    "group flex items-center gap-2.5 rounded-lg transition-all duration-150",
+                    depth === 0
+                        ? "px-3 py-2 text-xs font-medium"
+                        : depth === 1
+                            ? "pl-7 pr-3 py-1.5 text-xs font-medium text-slate-600"
+                            : "pl-11 pr-3 py-1 text-[11px] font-medium text-slate-500",
+                    collapsed ? "justify-center px-0" : "",
                     isActive
-                        ? "bg-slate-200/70 text-slate-900 font-semibold"
-                        : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900"
+                        ? "bg-slate-200/80 text-slate-900 font-semibold"
+                        : "hover:bg-slate-200/40 hover:text-slate-900"
                 )
             }
             title={collapsed ? item.label : undefined}
         >
-            <Icon className={cn("h-4 w-4 shrink-0 transition-colors", depth > 0 && !collapsed && "h-3.5 w-3.5 text-slate-400")} />
+            <Icon
+                className={cn(
+                    "shrink-0 transition-colors",
+                    depth === 0
+                        ? "h-4 w-4"
+                        : depth === 1
+                            ? "h-3.5 w-3.5 text-slate-500 group-hover:text-slate-800"
+                            : "h-3 w-3 text-slate-400 group-hover:text-slate-700"
+                )}
+            />
             {!collapsed && <span className="truncate">{item.label}</span>}
         </NavLink>
     );
@@ -193,13 +258,7 @@ function SidebarNavItem({
     const location = useLocation();
     const hasChildren = !!item.children && item.children.length > 0;
 
-    const childActive = hasChildren
-        ? item.children!.some(
-            (c) =>
-                c.to === location.pathname ||
-                (c.to !== "/" && location.pathname.startsWith(c.to))
-        )
-        : false;
+    const childActive = hasChildren ? isNavActive(item, location.pathname) : false;
 
     const [open, setOpen] = useState(childActive);
 
@@ -225,7 +284,12 @@ function SidebarNavItem({
                 }}
                 title={collapsed ? item.label : undefined}
                 className={cn(
-                    "group flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium transition-all duration-150",
+                    "group flex w-full items-center gap-2.5 rounded-lg transition-all duration-150",
+                    depth === 0
+                        ? "px-3 py-2 text-xs font-medium"
+                        : depth === 1
+                            ? "pl-7 pr-3 py-1.5 text-xs font-semibold text-slate-700"
+                            : "pl-10 pr-3 py-1 text-[11px] font-medium text-slate-600",
                     collapsed ? "justify-center px-0" : "",
                     childActive
                         ? "bg-slate-200/80 text-slate-900 font-semibold"
@@ -234,7 +298,12 @@ function SidebarNavItem({
                             : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900"
                 )}
             >
-                <item.icon className="h-4 w-4 shrink-0 text-slate-500 group-hover:text-slate-800" />
+                <item.icon
+                    className={cn(
+                        "shrink-0 text-slate-500 group-hover:text-slate-800 transition-colors",
+                        depth === 0 ? "h-4 w-4" : depth === 1 ? "h-3.5 w-3.5" : "h-3 w-3"
+                    )}
+                />
                 {!collapsed && (
                     <>
                         <span className="flex-1 text-left truncate">{item.label}</span>
@@ -249,9 +318,9 @@ function SidebarNavItem({
             </button>
 
             {!collapsed && open && (
-                <div className="mt-0.5 space-y-0.5 pl-1">
+                <div className="mt-0.5 space-y-0.5">
                     {item.children!.map((child) => (
-                        <SidebarNavItem key={child.to} item={child} depth={depth + 1} collapsed={collapsed} onExpand={onExpand} />
+                        <SidebarNavItem key={child.to + child.label} item={child} depth={depth + 1} collapsed={collapsed} onExpand={onExpand} />
                     ))}
                 </div>
             )}
@@ -331,27 +400,6 @@ function SidebarHeader({
                 </div>
             )}
 
-            {/* Search & Utility quick links saat terbuka */}
-            {!collapsed && (
-                <div className="mt-2.5 space-y-0.5 text-slate-600">
-                    <button
-                        type="button"
-                        onClick={() => navigate("/pendaftaran/registrasi-lama")}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium hover:bg-slate-200/50 hover:text-slate-900 transition-colors"
-                    >
-                        <Search className="h-3.5 w-3.5 text-slate-400" />
-                        <span>Cari Pasien / Poli</span>
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => navigate("/pendaftaran/antrean")}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-xs font-medium hover:bg-slate-200/50 hover:text-slate-900 transition-colors"
-                    >
-                        <Inbox className="h-3.5 w-3.5 text-slate-400" />
-                        <span className="flex-1 text-left">Pesan & Notif</span>
-                    </button>
-                </div>
-            )}
         </div>
     );
 }

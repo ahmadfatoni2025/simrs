@@ -117,13 +117,47 @@ export default function Antrean() {
                                                 <p className="truncate text-xs text-slate-400">
                                                     {String(r.poli ?? "-")} · {String(r.dokter ?? "")}
                                                 </p>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setCalled(`#${String(r.no ?? "-")} - ${String(r.name ?? "")}`)}
-                                                    className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-lg bg-blue-600 py-1.5 text-[11px] font-semibold text-white hover:bg-blue-500"
-                                                >
-                                                    <CheckCircle2 className="h-3 w-3" /> Panggil
-                                                </button>
+                                                <div className="mt-2 flex gap-1.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setCalled(`#${String(r.no ?? "-")} - ${String(r.name ?? "")}`)}
+                                                        className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-indigo-50 border border-indigo-200 py-1.5 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
+                                                    >
+                                                        <Phone className="h-3 w-3" /> Panggil
+                                                    </button>
+                                                    {col.key === "Menunggu" && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={async () => {
+                                                                r.status = "Diperiksa";
+                                                                try {
+                                                                    const rowId = r.id ?? r.id_pendaftaran;
+                                                                    if (rowId) await api(`/pendaftaran/${rowId}`, { method: "PUT", body: JSON.stringify({ status: "Diperiksa" }) });
+                                                                } catch { }
+                                                                setReset((x) => x + 1);
+                                                            }}
+                                                            className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-blue-600 py-1.5 text-[11px] font-semibold text-white hover:bg-blue-500 transition-colors"
+                                                        >
+                                                            <Stethoscope className="h-3 w-3" /> Periksa
+                                                        </button>
+                                                    )}
+                                                    {col.key === "Diperiksa" && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={async () => {
+                                                                r.status = "Selesai";
+                                                                try {
+                                                                    const rowId = r.id ?? r.id_pendaftaran;
+                                                                    if (rowId) await api(`/pendaftaran/${rowId}`, { method: "PUT", body: JSON.stringify({ status: "Selesai" }) });
+                                                                } catch { }
+                                                                setReset((x) => x + 1);
+                                                            }}
+                                                            className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-emerald-600 py-1.5 text-[11px] font-semibold text-white hover:bg-emerald-500 transition-colors"
+                                                        >
+                                                            <CheckCircle2 className="h-3 w-3" /> Selesai
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                         ))
                                     )}
