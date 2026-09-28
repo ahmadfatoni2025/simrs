@@ -1,0 +1,15 @@
+{
+  "name": "simrs",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k -n \"backend,frontend\" -c \"magenta,cyan\" \"composer --working-dir=backend run dev\" \"npm --prefix frontend run dev\"",
+    "dev:artisan": "concurrently -k -n \"backend,frontend\" -c \"magenta,cyan\" \"php backend/artisan serve\" \"npm --prefix frontend run dev\"",
+    "dev:npm": "concurrently -k -n \"backend,frontend\" -c \"magenta,cyan\" \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+    "dev:backend": "composer --working-dir=backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "install:all": "npm install && npm --prefix backend install && npm --prefix frontend install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

@@ -8,6 +8,7 @@ export default [
     index("routes/home.tsx"),
     route("/login", "routes/login.tsx"),
     route("/dashboard", "dashboard/dashboard.tsx"),
+    route("/master-data", "master-data/index.tsx"),
     route("/master-data/:entity", "master-data/master-data.tsx"),
     route("/pendaftaran", "pendaftaran/layout.tsx", [
         index("pendaftaran/index.tsx"),
@@ -36,6 +37,12 @@ export default [
     route("/pemeriksaan", "pemeriksaan/pemeriksaan.tsx"),
     route("/farmasi", "farmasi/farmasi.tsx"),
     route("/rawat-inap", "rawat-inap/rawat-inap.tsx"),
+    route("/kasir", "kasir/kasir.tsx"),
+    route("/keuangan", "keuangan/keuangan.tsx"),
+    route("/inventory", "inventory/inventory.tsx"),
+    route("/integrasi", "integrasi/integrasi.tsx"),
+    route("/surat-digital", "surat-digital/surat-digital.tsx"),
+    route("/penunjang", "penunjang/penunjang.tsx"),
     route("/laporan", "laporan/laporan.tsx"),
     route("/pengaturan", "pengaturan/pengaturan.tsx"),
 ] satisfies RouteConfig;

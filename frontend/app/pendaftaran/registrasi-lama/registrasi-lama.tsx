@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { CheckCircle2, FileText, Printer, Search, UserRoundCheck } from "lucide-react";
+import { CheckCircle2, FileText, Printer, Search, UserRoundCheck, History } from "lucide-react";
 import { api } from "~/lib/api";
 import { cn } from "~/lib/utils";
 import { EmptyState, FeatureShell } from "../ui/FeatureShell";
@@ -22,6 +22,14 @@ interface PasienRM {
     [key: string]: unknown;
 }
 
+interface PendaftaranRiwayat {
+    no: string;
+    poli: string;
+    dokter: string;
+    status: string;
+    tanggal: string;
+}
+
 interface PoliOption {
     id_sub_unit_pegawai: number;
     nama_sub_unit_pegawai: string;
@@ -41,7 +49,9 @@ export default function RegistrasiLama() {
     const [query, setQuery] = useState("");
     const [results, setResults] = useState<PasienRM[]>([]);
     const [selected, setSelected] = useState<PasienRM | null>(null);
+    const [riwayat, setRiwayat] = useState<PendaftaranRiwayat[]>([]);
     const [searching, setSearching] = useState(false);
+    const [loadingRiwayat, setLoadingRiwayat] = useState(false);
     const [message, setMessage] = useState("");
     const [showRM01, setShowRM01] = useState(false);
 
@@ -60,13 +70,11 @@ export default function RegistrasiLama() {
             if (searchKeyword.trim()) {
                 params.set("search", searchKeyword.trim());
             }
-            const res = await api<{ data?: PasienRM[] | { data: PasienRM[] } }>(`/rekam-medis?${params}`);
+            const res = await api<{ data?: PasienRM[] | { data: PasienRM[] }; meta?: unknown }>(`/pasien?${params}`);
             
             let list: PasienRM[] = [];
-            if (Array.isArray(res)) {
-                list = res as PasienRM[];
-            } else if (Array.isArray(res.data)) {
-                list = res.data;
+            if (Array.isArray(res.data)) {
+                list = res.data as PasienRM[];
             } else if (res.data && typeof res.data === "object" && "data" in res.data && Array.isArray((res.data as { data: PasienRM[] }).data)) {
                 list = (res.data as { data: PasienRM[] }).data;
             }
@@ -75,6 +83,18 @@ export default function RegistrasiLama() {
             setResults([]);
         } finally {
             setSearching(false);
+        }
+    }
+
+    async function fetchRiwayat(pasienId: number) {
+        setLoadingRiwayat(true);
+        try {
+            const res = await api<{ data?: PendaftaranRiwayat[] }>(`/pasien/${pasienId}/registrations`);
+            setRiwayat(Array.isArray(res.data) ? res.data : []);
+        } catch {
+            setRiwayat([]);
+        } finally {
+            setLoadingRiwayat(false);
         }
     }
 
@@ -125,6 +145,7 @@ export default function RegistrasiLama() {
         setResults([]);
         setMessage("");
         setShowRM01(false);
+        void fetchRiwayat(p.id);
     }
 
     async function handleSubmit(e: FormEvent) {
@@ -249,6 +270,52 @@ export default function RegistrasiLama() {
                                 <span>Tanggal Lahir: {String(selected.tanggal_lahir ?? "-")}</span>
                                 <span>No. HP: {String(selected.no_telepon ?? "-")}</span>
                             </div>
+                        </div>
+
+                        {/* Riwayat Kunjungan */}
+                        <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                            <h3 className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-3">
+                                <History className="h-4 w-4 text-indigo-500" /> Riwayat Kunjungan
+                            </h3>
+                            {loadingRiwayat ? (
+                                <p className="text-xs text-slate-400">Memuat riwayat...</p>
+                            ) : riwayat.length === 0 ? (
+                                <p className="text-xs text-slate-400">Tidak ada riwayat kunjungan.</p>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-xs">
+                                        <thead>
+                                            <tr className="border-b border-slate-200 text-slate-500">
+                                                <th className="text-left px-2 py-1">No. Kunjungan</th>
+                                                <th className="text-left px-2 py-1">Poliklinik</th>
+                                                <th className="text-left px-2 py-1">Dokter</th>
+                                                <th className="text-left px-2 py-1">Status</th>
+                                                <th className="text-left px-2 py-1">Tanggal</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {riwayat.map((r, idx) => (
+                                                <tr key={idx} className="border-b border-slate-100 hover:bg-white/50">
+                                                    <td className="px-2 py-2 font-mono text-slate-600">{r.no}</td>
+                                                    <td className="px-2 py-2 text-slate-600">{r.poli}</td>
+                                                    <td className="px-2 py-2 text-slate-600">{r.dokter}</td>
+                                                    <td className="px-2 py-2">
+                                                        <span className={cn(
+                                                            "inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                                                            r.status.toLowerCase().includes("periksa") ? "bg-blue-100 text-blue-700" :
+                                                            r.status.toLowerCase().includes("selesai") ? "bg-emerald-100 text-emerald-700" :
+                                                            "bg-amber-100 text-amber-700"
+                                                        )}>
+                                                            {r.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-2 py-2 text-slate-500">{r.tanggal}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">

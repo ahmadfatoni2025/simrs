@@ -248,13 +248,13 @@ export default function Dashboard() {
                             <StatCard
                                 icon={Clock}
                                 label="Total Pasien Hari Ini"
-                                value={stats.find((s) => s.key === "pasien_hari_ini")?.value ?? "132"}
+                                value={String(stats.find((s) => s.key === "pasien_hari_ini")?.value ?? "132")}
                                 badge="+12.4%"
                             />
                             <StatCard
                                 icon={Wallet}
                                 label="Pendapatan Bulan Ini"
-                                value={stats.find((s) => s.key === "pendapatan_bulan_ini")?.value ?? "Rp 10.4M"}
+                                value={String(stats.find((s) => s.key === "pendapatan_bulan_ini")?.value ?? "Rp 10.4M")}
                                 badge="+8.2%"
                             />
                             <StatCard
