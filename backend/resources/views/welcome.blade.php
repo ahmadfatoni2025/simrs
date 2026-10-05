@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SIMRSMB — Backend Schema & API</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config = { darkMode: 'class' };</script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         body { font-family: ui-sans-serif, system-ui, sans-serif; background: #0c0c10; }
         #canvas-wrap { touch-action: none; user-select: none; cursor: grab; }

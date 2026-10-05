@@ -2,182 +2,178 @@ import { useState } from "react";
 import { useSearchParams } from "react-router";
 import {
     Network,
-    RefreshCw,
     ShieldCheck,
-    Building2,
-    CheckCircle2,
     Activity,
+    Building2,
+    Calendar,
+    RefreshCw,
+    CheckCircle2,
+    Sparkles,
     Search,
-    Filter,
-    QrCode,
-    Cpu,
-    ExternalLink,
-    FileText,
-    Key
+    FileText
 } from "lucide-react";
 import { AppShell } from "~/components/layout/AppShell";
 import { cn } from "~/lib/utils";
 
+export type IntegrasiTab =
+    | "bpjs"
+    | "satusehat"
+    | "sitb"
+    | "rs-online";
+
 export default function IntegrasiPage() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const currentTab = searchParams.get("tab") || "bpjs";
+    const activeTab = (searchParams.get("tab") || "bpjs") as IntegrasiTab;
 
-    const tabs = [
-        { id: "bpjs", label: "BPJS V-Claim & HFIS", icon: ShieldCheck },
-        { id: "satusehat", label: "SATUSEHAT Kemenkes", icon: Network },
-        { id: "sitb", label: "SITB (Tuberkulosis)", icon: Activity },
-        { id: "rs-online", label: "RS Online & Apotek Online", icon: Building2 },
-    ];
+    const setTab = (tab: string) => {
+        if (tab === "bpjs") setSearchParams({});
+        else setSearchParams({ tab });
+    };
+
+    const [nokartu, setNokartu] = useState("0001234567890");
+    const [nik, setNik] = useState("3529012345670001");
+    const [sepResult, setSepResult] = useState<any>(null);
+
+    const handleCekBPJS = () => {
+        setSepResult({
+            peserta: "Budi Santoso",
+            nokartu,
+            nik,
+            hakKelas: "Kelas 1",
+            status: "AKTIF",
+            faskes1: "Puskesmas Kenanga"
+        });
+    };
 
     return (
         <AppShell>
             <div className="space-y-6">
-                {/* Header Banner */}
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 p-6 text-white shadow-lg">
-                    <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-                    <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <div className="flex items-center gap-2 text-blue-100 text-xs font-semibold uppercase tracking-wider mb-1">
-                                <Network className="h-4 w-4" /> Modul Integrasi & Bridging Eksternal
-                            </div>
-                            <h1 className="text-2xl font-extrabold tracking-tight">Hub Integrasi BPJS, SATUSEHAT & Portal Resmi</h1>
-                            <p className="mt-1 text-xs text-blue-100 max-w-2xl">
-                                Pusat pemantauan konektivitas API bridging BPJS Kesehatan (V-Claim, HFIS, Antrean), SATUSEHAT Kemenkes (FHIR / Encounter), SITB, dan RS Online.
-                            </p>
-                        </div>
+                {/* Header */}
+                <div className="flex flex-col gap-4 border-b border-slate-200/80 pb-5 md:flex-row md:items-center md:justify-between">
+                    <div>
                         <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                className="flex items-center gap-1.5 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-blue-700 hover:bg-blue-50 transition-all shadow-md active:scale-98"
-                            >
-                                <RefreshCw className="h-4 w-4" /> Sync Ulang API Status
-                            </button>
+                            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                                Integrasi & Bridging Sistem External
+                            </h1>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 border border-blue-200">
+                                <Network className="h-3.5 w-3.5" /> BPJS & SATUSEHAT API
+                            </span>
                         </div>
+                        <p className="mt-1 text-xs text-slate-500">
+                            Bridging V-Claim BPJS Kesehatan v2.0, SATUSEHAT Kemenkes FHIR R4, SITB TB & SIRANAP.
+                        </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-2xs">
+                        <Calendar className="h-4 w-4 text-blue-600" />
+                        <span>05 Oktober 2026</span>
                     </div>
                 </div>
 
-                {/* Status Integration Cards */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs">
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-500">BPJS V-Claim API</span>
-                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                                <CheckCircle2 className="h-5 w-5" />
-                            </div>
-                        </div>
-                        <p className="mt-3 text-xl font-extrabold text-slate-900">Terhubung (Online)</p>
-                        <p className="mt-1 text-[11px] text-emerald-600 font-semibold">Latency: 124ms</p>
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs">
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-500">SATUSEHAT FHIR Engine</span>
-                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                                <CheckCircle2 className="h-5 w-5" />
-                            </div>
-                        </div>
-                        <p className="mt-3 text-xl font-extrabold text-slate-900">Encounter Ready</p>
-                        <p className="mt-1 text-[11px] text-emerald-600 font-semibold">Org ID: 100028491</p>
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs">
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-500">Pelaporan SITB TB</span>
-                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                                <Activity className="h-5 w-5" />
-                            </div>
-                        </div>
-                        <p className="mt-3 text-xl font-extrabold text-slate-900">12 Pasien Terlaporkan</p>
-                        <p className="mt-1 text-[11px] text-slate-400 font-medium">Bulan September 2026</p>
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs">
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-500">RS Online Tempat Tidur</span>
-                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                                <Building2 className="h-5 w-5" />
-                            </div>
-                        </div>
-                        <p className="mt-3 text-xl font-extrabold text-slate-900">Auto Sync Active</p>
-                        <p className="mt-1 text-[11px] text-slate-400 font-medium">Sync per 15 menit</p>
-                    </div>
-                </div>
-
-                {/* Navigation Tabs */}
-                <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-2 scrollbar-none">
-                    {tabs.map((tab) => {
+                {/* Sub-menu Tabs */}
+                <div className="flex items-center gap-1.5 rounded-2xl bg-slate-100 p-1.5 border border-slate-200/60 shadow-inner overflow-x-auto scrollbar-none">
+                    {[
+                        { id: "bpjs", label: "BPJS V-Claim & HFIS", icon: ShieldCheck },
+                        { id: "satusehat", label: "SATUSEHAT Kemenkes", icon: Network },
+                        { id: "sitb", label: "SITB (Tuberkulosis)", icon: Activity },
+                        { id: "rs-online", label: "RS Online & Apotek Online", icon: Building2 },
+                    ].map((tab) => {
                         const Icon = tab.icon;
-                        const isActive = currentTab === tab.id;
+                        const isSelected = activeTab === tab.id || (activeTab === ("" as any) && tab.id === "bpjs");
                         return (
                             <button
                                 key={tab.id}
                                 type="button"
-                                onClick={() => setSearchParams({ tab: tab.id })}
+                                onClick={() => setTab(tab.id)}
                                 className={cn(
-                                    "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap",
-                                    isActive
-                                        ? "bg-blue-600 text-white shadow-md"
-                                        : "bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/80"
+                                    "flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all whitespace-nowrap cursor-pointer",
+                                    isSelected
+                                        ? "bg-white text-blue-700 shadow-sm font-bold"
+                                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
                                 )}
                             >
                                 <Icon className="h-4 w-4" />
-                                {tab.label}
+                                <span>{tab.label}</span>
                             </button>
                         );
                     })}
                 </div>
 
-                {/* Main Interface */}
-                <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-2xs space-y-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Daftar Log Transaksi & Bridging Endpoint</h3>
-                            <p className="text-xs text-slate-500">Status sinkronisasi data riil dengan server Kementerian Kesehatan & BPJS</p>
-                        </div>
-                        <button type="button" className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-                            <Key className="h-3.5 w-3.5 text-slate-500" /> API Secret Credentials
-                        </button>
-                    </div>
+                {/* TAB 1: BPJS BRIDGING V-CLAIM */}
+                {(activeTab === "bpjs" || !searchParams.get("tab")) && (
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                        <div className="lg:col-span-2 space-y-4">
+                            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
+                                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">
+                                    Cek Peserta & Bridging SEP V-Claim 2.0
+                                </h3>
 
-                    <div className="overflow-x-auto rounded-xl border border-slate-200/80">
-                        <table className="w-full text-left text-xs">
-                            <thead className="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
-                                <tr>
-                                    <th className="px-4 py-3">Timestamp Sync</th>
-                                    <th className="px-4 py-3">Endpoint API</th>
-                                    <th className="px-4 py-3">Ref ID / SEP</th>
-                                    <th className="px-4 py-3">HTTP Status</th>
-                                    <th className="px-4 py-3">Keterangan</th>
-                                    <th className="px-4 py-3 text-right">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-200/80 text-slate-700 font-medium">
-                                {[
-                                    { time: "28/09/2026 22:15", endpoint: "POST /vclaim-rest/SEP/2.0/insert", ref: "0001R0010926V00012", status: "200 OK", note: "SEP Rawat Jalan Berhasil Diterbitkan" },
-                                    { time: "28/09/2026 22:10", endpoint: "POST /satusehat/Encounter", ref: "enc-992182-412", status: "201 Created", note: "Encounter Pendaftaran synced to Kemenkes" },
-                                    { time: "28/09/2026 21:45", endpoint: "GET /hfis/ref/dokter", ref: "DR-HFIS-102", status: "200 OK", note: "Jadwal Dokter HFIS BPJS Synchronized" },
-                                ].map((row, i) => (
-                                    <tr key={i} className="hover:bg-slate-50/80 transition-colors">
-                                        <td className="px-4 py-3 text-slate-500">{row.time}</td>
-                                        <td className="px-4 py-3 font-mono text-slate-800 font-bold">{row.endpoint}</td>
-                                        <td className="px-4 py-3 font-bold text-slate-900">{row.ref}</td>
-                                        <td className="px-4 py-3">
-                                            <span className="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
-                                                {row.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3">{row.note}</td>
-                                        <td className="px-4 py-3 text-right">
-                                            <button type="button" className="inline-flex items-center gap-1 text-blue-600 font-bold hover:underline">
-                                                Payload <ExternalLink className="h-3 w-3" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                <div className="space-y-3 text-xs">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block font-bold text-slate-700 mb-1">No. Kartu BPJS</label>
+                                            <input
+                                                type="text"
+                                                value={nokartu}
+                                                onChange={(e) => setNokartu(e.target.value)}
+                                                className="w-full rounded-xl border border-slate-200 p-2.5 font-mono font-bold"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block font-bold text-slate-700 mb-1">NIK Kependudukan</label>
+                                            <input
+                                                type="text"
+                                                value={nik}
+                                                onChange={(e) => setNik(e.target.value)}
+                                                className="w-full rounded-xl border border-slate-200 p-2.5 font-mono font-bold"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleCekBPJS}
+                                        className="rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-2xs hover:bg-blue-500 cursor-pointer"
+                                    >
+                                        Ping & Cek Kepesertaan BPJS
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right Panel */}
+                        <div className="space-y-4">
+                            {sepResult ? (
+                                <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-5 shadow-2xs space-y-3">
+                                    <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
+                                        <h4 className="text-xs font-bold text-emerald-900">Status Peserta BPJS</h4>
+                                        <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
+                                            {sepResult.status}
+                                        </span>
+                                    </div>
+                                    <div className="text-xs space-y-1 text-emerald-950">
+                                        <p><span className="text-emerald-700">Nama:</span> <strong>{sepResult.peserta}</strong></p>
+                                        <p><span className="text-emerald-700">Hak Kelas:</span> <strong>{sepResult.hakKelas}</strong></p>
+                                        <p><span className="text-emerald-700">Faskes I:</span> <strong>{sepResult.faskes1}</strong></p>
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
                     </div>
-                </div>
+                )}
+
+                {/* OTHER TABS */}
+                {activeTab !== "bpjs" && searchParams.get("tab") && (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-2xs text-center space-y-3">
+                        <Network className="h-10 w-10 text-blue-600 mx-auto" />
+                        <h3 className="text-base font-bold text-slate-900">
+                            Bridging Integrasi — {activeTab.toUpperCase()}
+                        </h3>
+                        <p className="text-xs text-slate-500 max-w-md mx-auto">
+                            Platform integrasi standar Kemenkes SATUSEHAT FHIR R4, SITB, dan SIRANAP Online RS.
+                        </p>
+                    </div>
+                )}
             </div>
         </AppShell>
     );

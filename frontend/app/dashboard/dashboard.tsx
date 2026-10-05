@@ -1,450 +1,534 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router";
 import {
-    Activity,
-    Calendar,
-    BedDouble,
-    Clock,
-    Loader2,
-    MoreHorizontal,
-    RefreshCw,
-    Pencil,
-    Plus,
-    Wallet,
-    ClipboardList,
-    AlertCircle,
+    Activity, Calendar, BedDouble, Clock, Loader2, MoreHorizontal,
+    Wallet, ClipboardList, AlertCircle, Users, FileText, PillBottle,
+    FlaskConical, HeartPulse, ChevronRight, ChevronLeft, AlertTriangle,
+    TrendingUp, Search, Send, Sparkles, Syringe, ArrowUpRight, ArrowDownRight,
+    Plus, CreditCard, SendHorizontal, ArrowDownLeft, Clock3, Filter,
+    CheckCircle2, AlertCircle as AlertIcon, RefreshCw, ChevronDown, Bell, Mail,
+    UserPlus, Stethoscope, Bed, DollarSign, FileCheck, ExternalLink,
+    type LucideIcon,
 } from "lucide-react";
-import {
-    Area,
-    AreaChart,
-    CartesianGrid,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-    PieChart,
-    Pie,
-    Cell,
-} from "recharts";
 import { api, getToken, type DashboardData } from "~/lib/api";
 import { AppShell } from "~/components/layout/AppShell";
 import { cn } from "~/lib/utils";
 
-// Types
-interface ChartTooltipProps {
-    active?: boolean;
-    payload?: Array<{
-        payload: {
-            date: string;
-            label: string;
-            visits: number;
-            projected: number;
-        };
-        value: number;
-    }>;
+/* -------------------------------------------------------------------------- */
+/*                                   TYPES                                    */
+/* -------------------------------------------------------------------------- */
+interface RecentActivity {
+    id: string;
+    avatar: string;
+    text: string;
+    time: string;
+    dayGroup: "Today" | "Yesterday";
 }
 
-// Custom Tooltip Component
-const ChartTooltip = ({ active, payload }: ChartTooltipProps) => {
-    if (!active || !payload?.length) return null;
-
-    const data = payload[0].payload;
-
-    return (
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-lg">
-            <p className="mb-2 text-xs font-semibold text-slate-700">{data.date}</p>
-            <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-slate-900" />
-                    <span className="text-xs text-slate-500">Kunjungan:</span>
-                    <span className="text-xs font-bold text-slate-900">{data.visits}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-slate-300" />
-                    <span className="text-xs text-slate-500">Target:</span>
-                    <span className="text-xs font-bold text-slate-900">{data.projected}</span>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// Stat Card Component
-const StatCard = ({
-    icon: Icon,
-    label,
-    value,
-    subValue,
-    badge,
-    badgeColor = "emerald"
-}: {
-    icon: any;
-    label: string;
-    value: string;
-    subValue?: string;
-    badge?: string;
-    badgeColor?: "emerald" | "blue";
-}) => (
-    <div className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-all hover:shadow-md">
-        <div className="flex items-start justify-between">
-            <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition-colors group-hover:bg-slate-200">
-                    <Icon className="h-5 w-5" />
-                </div>
-                <div>
-                    <p className="text-xs font-medium text-slate-500">{label}</p>
-                    <p className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
-                        {value}
-                        {subValue && (
-                            <span className="ml-1 text-sm font-normal text-slate-400">{subValue}</span>
-                        )}
-                    </p>
-                </div>
-            </div>
-            <button className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600">
-                <MoreHorizontal className="h-4 w-4" />
-            </button>
-        </div>
-        {badge && (
-            <div className="mt-4">
-                <span className={cn(
-                    "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold",
-                    badgeColor === "emerald"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-blue-50 text-blue-700"
-                )}>
-                    {badge}
-                </span>
-            </div>
-        )}
-    </div>
-);
+/* -------------------------------------------------------------------------- */
+/*                               MOCK ACTIVITIES                              */
+/* -------------------------------------------------------------------------- */
+const RECENT_ACTIVITIES: RecentActivity[] = [
+    {
+        id: "act1",
+        avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
+        text: "Dr. Rina memperbarui resep & CPPT pasien Arjun Sharma",
+        time: "10:15 WIB",
+        dayGroup: "Today",
+    },
+    {
+        id: "act2",
+        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&auto=format&fit=crop&q=80",
+        text: "Laboratorium menerbitkan hasil Darah Lengkap Neha Kapoor",
+        time: "09:45 WIB",
+        dayGroup: "Today",
+    },
+    {
+        id: "act3",
+        avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&auto=format&fit=crop&q=80",
+        text: "Pendaftaran pasien baru BPJS - Rakesh Patel (Ranap)",
+        time: "16:20 WIB",
+        dayGroup: "Yesterday",
+    },
+    {
+        id: "act4",
+        avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&auto=format&fit=crop&q=80",
+        text: "Verifikasi klaim klaim asuransi rawat inap selesai",
+        time: "14:10 WIB",
+        dayGroup: "Yesterday",
+    },
+];
 
 export default function Dashboard() {
     const navigate = useNavigate();
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
-    const [activeTab, setActiveTab] = useState("all");
+    const [selectedYear, setSelectedYear] = useState("Tahun Ini");
+    const [searchQuery, setSearchQuery] = useState("");
 
     async function load() {
-        if (!getToken()) {
-            navigate("/login", { replace: true });
-            return;
-        }
-        setLoading(true);
-        setError("");
+        if (!getToken()) { navigate("/login", { replace: true }); return; }
+        setLoading(true); setError("");
         try {
             const payload = await api<{ data: DashboardData }>("/dashboard");
             setData(payload.data);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Gagal memuat data dashboard.");
-        } finally {
-            setLoading(false);
-        }
+        } finally { setLoading(false); }
     }
 
-    useEffect(() => {
-        void load();
-    }, [navigate]);
+    useEffect(() => { void load(); }, [navigate]);
 
+    // Live Synchronized Database Data
     const stats = data?.stats ?? [];
     const rooms = data?.rooms;
+    const weeklyVisits = data?.weekly_visits ?? [];
+    const recentRegs = data?.recent_registrations ?? [];
 
-    const chartData = (data?.weekly_visits ?? []).map((v) => ({
-        date: v.date,
-        label: v.label,
-        visits: v.value,
-        projected: Math.round(v.value * 1.15),
-    }));
-
-    const roomProgressData = [
-        { name: "Terisi", value: rooms?.terisi ?? 18, color: "#2563eb" },
-        { name: "Kosong", value: rooms?.kosong ?? 7, color: "#f59e0b" },
-        { name: "Perawatan", value: rooms?.perawatan ?? 5, color: "#ef4444" },
-    ];
-
+    // Calculate Dynamic Summaries
+    const totalVisits = weeklyVisits.reduce((acc, curr) => acc + curr.value, 0);
     const totalBeds = rooms?.kapasitas ?? 30;
-    const occupancyRate = totalBeds > 0 ? Math.round(((rooms?.terisi ?? 18) / totalBeds) * 100) : 70;
+    const filledBeds = rooms?.terisi ?? 18;
+    const roomOccupancy = totalBeds > 0 ? Math.round((filledBeds / totalBeds) * 100) : 60;
 
-    const tabs = [
-        { id: "all", label: "Semua Kunjungan" },
-        { id: "poli", label: "Poliklinik Utama" },
-        { id: "dokter", label: "Jadwal Dokter" },
+    const pendapatanStat = stats.find((s) => s.key === "pendapatan_bulan_ini")?.value ?? "Rp 1.170.000.000";
+    const pasienStat = stats.find((s) => s.key === "pasien_hari_ini")?.value ?? "42";
+
+    // Quick Interactive Actions for Workflow Efficiency
+    const QUICK_ACTIONS = [
+        { label: "Daftar Pasien Baru", icon: UserPlus, path: "/pendaftaran", color: "bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100" },
+        { label: "Pemeriksaan Dokter", icon: Stethoscope, path: "/pemeriksaan", color: "bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100" },
+        { label: "Manajemen Bangsal", icon: Bed, path: "/rawat-inap", color: "bg-amber-50 text-amber-600 border-amber-100 hover:bg-amber-100" },
+        { label: "Resep Farmasi", icon: PillBottle, path: "/farmasi", color: "bg-purple-50 text-purple-600 border-purple-100 hover:bg-purple-100" },
+        { label: "Laboratorium", icon: FlaskConical, path: "/penunjang?tab=laboratorium", color: "bg-teal-50 text-teal-600 border-teal-100 hover:bg-teal-100" },
+        { label: "Kasir & Billing", icon: DollarSign, path: "/laporan", color: "bg-rose-50 text-rose-600 border-rose-100 hover:bg-rose-100" },
     ];
+
+    // Filter registrations by search
+    const filteredRegistrations = recentRegs.filter(r =>
+        r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.no.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.poli.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.dokter.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <AppShell>
-            <div className=" lg:px-8">
-                {/* Header Section */}
-                <div className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0">
-                        <h1 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
-                            Proyek Pelayanan SIMRS & Rawat Jalan
+            <div className="min-h-screen bg-[#F7F8FA] p-3 sm:p-6 text-slate-800 font-sans">
+
+                {/* ──────────────────────────────────────────────────────── */}
+                {/*  TOP BAR (Dashboard Header + Global Search + Profile)   */}
+                {/* ──────────────────────────────────────────────────────── */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
+                    <div>
+                        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                            Dashboard SIMRS Integrasi
                         </h1>
-                        <div className="mt-2 flex flex-wrap items-center gap-2">
-                            <div className="flex items-center gap-1.5 text-xs font-medium text-slate-500">
-                                <Calendar className="h-3.5 w-3.5" />
-                                <span>12 Agt 2026 - 19 Agt 2026</span>
-                            </div>
-                            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700">
-                                Periode Aktif
-                            </span>
-                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">Summary data realtime & alur kerja rumah sakit</p>
+                    </div>
+
+                    {/* Center Search Input */}
+                    <div className="relative w-full sm:w-[420px]">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Cari pasien, No. RM, poliklinik, atau dokter..."
+                            className="w-full rounded-full bg-white border-0 py-2.5 pl-11 pr-4 text-xs shadow-sm ring-1 ring-slate-200/60 focus:ring-2 focus:ring-emerald-500 focus:outline-none placeholder:text-slate-400 transition-all"
+                        />
                     </div>
 
                 </div>
 
-                {/* Error Message */}
                 {error && (
-                    <div className="mb-6 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-medium text-red-600">
-                        <AlertCircle className="h-4 w-4" />
-                        {error}
+                    <div className="mb-6 flex items-center justify-between rounded-2xl bg-rose-50 p-4 text-xs font-medium text-rose-700 ring-1 ring-rose-200/60">
+                        <div className="flex items-center gap-2">
+                            <AlertIcon className="h-4 w-4 shrink-0" /> {error}
+                        </div>
+                        <button onClick={load} className="underline font-bold text-rose-800">Coba Lagi</button>
                     </div>
                 )}
 
-                {/* Loading State */}
+                {/* Quick Workflow Action Shortcuts */}
+                <div className="mb-6">
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Akses Cepat Modul Utama</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                        {QUICK_ACTIONS.map((action, i) => (
+                            <button
+                                key={i}
+                                onClick={() => navigate(action.path)}
+                                className={cn(
+                                    "flex items-center gap-2.5 p-3 rounded-2xl border text-xs font-bold transition-all shadow-sm group text-left",
+                                    action.color
+                                )}
+                            >
+                                <action.icon className="h-4 w-4 shrink-0 group-hover:scale-110 transition-transform" />
+                                <span className="truncate">{action.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
                 {loading && !data ? (
-                    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-28 shadow-sm">
-                        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-                        <p className="text-sm text-slate-500">Memuat statistik dashboard...</p>
+                    <div className="flex flex-col items-center justify-center gap-3 rounded-3xl bg-white py-32 ring-1 ring-slate-200/60 shadow-sm">
+                        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+                        <p className="text-xs text-slate-400 font-medium">Sinkronisasi Data Realtime dari Database...</p>
                     </div>
                 ) : (
-                    <div className="space-y-6">
-                        {/* Stats Cards */}
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            <StatCard
-                                icon={Clock}
-                                label="Total Pasien Hari Ini"
-                                value={String(stats.find((s) => s.key === "pasien_hari_ini")?.value ?? "132")}
-                                badge="+12.4%"
-                            />
-                            <StatCard
-                                icon={Wallet}
-                                label="Pendapatan Bulan Ini"
-                                value={String(stats.find((s) => s.key === "pendapatan_bulan_ini")?.value ?? "Rp 10.4M")}
-                                badge="+8.2%"
-                            />
-                            <StatCard
-                                icon={BedDouble}
-                                label="Kamar Tersedia"
-                                value={String(rooms?.kosong ?? 7)}
-                                subValue={`/ ${rooms?.total ?? 30} Bed`}
-                                badge="Siap Pakai"
-                                badgeColor="blue"
-                            />
-                        </div>
+                    /* ──────────────────────────────────────────────────────── */
+                    /* MAIN 2-COLUMN GRID SYSTEM (LEFT 68% | RIGHT 32%)         */
+                    /* ──────────────────────────────────────────────────────── */
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-                        {/* Charts Section */}
-                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-                            {/* Area Chart */}
-                            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
-                                <div className="mb-6 flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <Activity className="h-4 w-4 text-slate-700" />
-                                        <h2 className="text-sm font-bold text-slate-900">
-                                            Tren Kunjungan Pasien
-                                        </h2>
+                        {/* =================================================== */}
+                        {/* LEFT COLUMN: MAIN ANALYTICS & TRANSACTIONS (8 COLS) */}
+                        {/* =================================================== */}
+                        <div className="lg:col-span-8 space-y-6">
+
+                            {/* Top 4 Real Data KPI Summary Cards */}
+                            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+
+                                {/* Card 1: Total Pendapatan Realtime */}
+                                <div className="rounded-3xl bg-white p-4 sm:p-5 shadow-sm ring-1 ring-slate-200/50 flex flex-col justify-between">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <p className="text-[11px] font-medium text-slate-500">Pendapatan Bulan Ini</p>
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                                            <Wallet className="h-4 w-4" />
+                                        </div>
                                     </div>
-                                    <button className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </button>
-                                </div>
-
-                                <div className="h-[280px] w-full">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                            <defs>
-                                                <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#1e293b" stopOpacity={0.08} />
-                                                    <stop offset="95%" stopColor="#1e293b" stopOpacity={0} />
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                            <XAxis
-                                                dataKey="label"
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tick={{ fontSize: 11, fill: "#94a3b8" }}
-                                                dy={10}
-                                            />
-                                            <YAxis
-                                                axisLine={false}
-                                                tickLine={false}
-                                                tick={{ fontSize: 11, fill: "#94a3b8" }}
-                                            />
-                                            <Tooltip content={<ChartTooltip />} />
-                                            <Area
-                                                type="monotone"
-                                                dataKey="visits"
-                                                stroke="#1e293b"
-                                                strokeWidth={2.5}
-                                                fillOpacity={1}
-                                                fill="url(#colorVisits)"
-                                            />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
-                                </div>
-
-                                <div className="mt-4 flex items-center justify-center gap-6 text-xs text-slate-500">
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-2.5 w-2.5 rounded-full bg-slate-900" />
-                                        <span>Rawat Jalan</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <div className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                                        <span>Target Harian</span>
+                                    <div>
+                                        <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                                            {pendapatanStat}
+                                        </h3>
+                                        <p className="text-[10px] text-emerald-600 font-semibold mt-1">Realtime DB Sync</p>
                                     </div>
                                 </div>
+
+                                {/* Card 2: Pasien Hari Ini */}
+                                <div className="rounded-3xl bg-white p-4 sm:p-5 shadow-sm ring-1 ring-slate-200/50 flex flex-col justify-between">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <p className="text-[11px] font-medium text-slate-500">Pasien Hari Ini</p>
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                                            <Users className="h-4 w-4" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                                            {pasienStat} <span className="text-xs font-normal text-slate-400">orang</span>
+                                        </h3>
+                                        <p className="text-[10px] text-blue-600 font-semibold mt-1">Poli & IGD Total</p>
+                                    </div>
+                                </div>
+
+                                {/* Card 3: Bed Occupancy Ranap */}
+                                <div className="rounded-3xl bg-white p-4 sm:p-5 shadow-sm ring-1 ring-slate-200/50 flex flex-col justify-between">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <p className="text-[11px] font-medium text-slate-500">Okupansi Kamar</p>
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+                                            <BedDouble className="h-4 w-4" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                                            {filledBeds} / {totalBeds} <span className="text-xs font-bold text-amber-600">({roomOccupancy}%)</span>
+                                        </h3>
+                                        <p className="text-[10px] text-slate-400 font-medium mt-1">{rooms?.kosong ?? 7} Bed Kosong</p>
+                                    </div>
+                                </div>
+
+                                {/* Card 4: Kunjungan Mingguan Total */}
+                                <div className="rounded-3xl bg-white p-4 sm:p-5 shadow-sm ring-1 ring-slate-200/50 flex flex-col justify-between">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <p className="text-[11px] font-medium text-slate-500">Total Kunjungan</p>
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-50 text-purple-600">
+                                            <Activity className="h-4 w-4" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                                            {totalVisits} <span className="text-xs font-normal text-slate-400">kunjungan</span>
+                                        </h3>
+                                        <p className="text-[10px] text-purple-600 font-semibold mt-1">Grafik 7 Hari Terakhir</p>
+                                    </div>
+                                </div>
+
                             </div>
 
-                            {/* Donut Chart */}
-                            <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                                <div className="mb-6 flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <BedDouble className="h-4 w-4 text-slate-700" />
-                                        <h2 className="text-sm font-bold text-slate-900">Okupansi Kamar</h2>
-                                    </div>
-                                    <button className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                    </button>
-                                </div>
+                            {/* Main Earnings & Visitor Bar Chart Card */}
+                            <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/50 relative">
 
-                                <div className="relative flex flex-1 items-center justify-center">
-                                    <div className="h-[200px] w-[200px]">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Pie
-                                                    data={roomProgressData}
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    innerRadius={70}
-                                                    outerRadius={90}
-                                                    paddingAngle={4}
-                                                    dataKey="value"
-                                                    stroke="none"
-                                                >
-                                                    {roomProgressData.map((entry, index) => (
-                                                        <Cell key={`cell-${index}`} fill={entry.color} />
-                                                    ))}
-                                                </Pie>
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                    <div className="absolute flex flex-col items-center">
-                                        <span className="text-3xl font-bold tracking-tight text-slate-900">
-                                            {occupancyRate}%
-                                        </span>
-                                        <span className="text-[10px] font-medium uppercase tracking-wider text-slate-400">
-                                            Terisi
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="mt-6 space-y-3">
-                                    {roomProgressData.map((item) => (
-                                        <div key={item.name} className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <div
-                                                    className="h-2.5 w-2.5 rounded-full"
-                                                    style={{ backgroundColor: item.color }}
-                                                />
-                                                <span className="text-xs text-slate-600">{item.name}</span>
-                                            </div>
-                                            <span className="text-xs font-semibold text-slate-900">
-                                                {item.value}
+                                {/* Header Controls */}
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                                    <div>
+                                        <p className="text-xs font-medium text-slate-500">Grafik Kunjungan & Tren Pasien Realtime</p>
+                                        <div className="flex items-center gap-3 mt-1">
+                                            <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+                                                {totalVisits} <span className="text-sm font-semibold text-slate-500">Total Pasien Minggu Ini</span>
+                                            </h2>
+                                            <span className="inline-flex items-center font-bold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full text-xs">
+                                                Terdaftar di DB
                                             </span>
                                         </div>
-                                    ))}
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+                                        <button className="flex items-center gap-2 rounded-xl bg-slate-50 border border-slate-200/80 px-3.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-100 transition-colors">
+                                            <span>{selectedYear}</span>
+                                            <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                                        </button>
+                                        <button onClick={() => navigate("/pendaftaran")} className="flex items-center gap-1.5 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100 px-3 py-1.5 text-xs font-bold hover:bg-emerald-100 transition-colors">
+                                            <span>Lihat Rekap Pendaftaran</span>
+                                            <ExternalLink className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Bars Container */}
+                                <div className="relative pt-6 pb-2">
+                                    <div className="grid grid-cols-7 gap-3 sm:gap-4 items-end h-[200px] pt-4 pl-4">
+                                        {weeklyVisits.map((bar, idx) => {
+                                            const maxVal = Math.max(...weeklyVisits.map(v => v.value), 1);
+                                            const pct = Math.round((bar.value / maxVal) * 100);
+                                            const isLast = idx === weeklyVisits.length - 1;
+                                            return (
+                                                <div key={idx} className="flex flex-col items-center gap-2 h-full justify-end group cursor-pointer">
+                                                    <div className="w-full flex flex-col items-center justify-end h-full relative">
+                                                        <div
+                                                            className={cn(
+                                                                "w-full max-w-[36px] rounded-t-xl transition-all duration-300 relative group-hover:bg-emerald-500",
+                                                                isLast ? "bg-emerald-500 shadow-md shadow-emerald-200" : "bg-emerald-200/80"
+                                                            )}
+                                                            style={{ height: `${Math.max(12, pct)}%` }}
+                                                        >
+                                                            <span className="opacity-0 group-hover:opacity-100 absolute -top-7 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-md transition-opacity whitespace-nowrap">
+                                                                {bar.value} Pasien
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <span className={cn(
+                                                        "text-[11px] font-medium transition-colors",
+                                                        isLast ? "text-slate-900 font-bold" : "text-slate-500"
+                                                    )}>
+                                                        {bar.label}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Table Section */}
-                        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-                            {/* Tab Navigation */}
-                            <div className="border-b border-slate-200">
-                                <div className="flex items-center justify-between px-6 pt-4">
-                                    <nav className="flex space-x-6">
-                                        {tabs.map((tab) => (
-                                            <button
-                                                key={tab.id}
-                                                type="button"
-                                                onClick={() => setActiveTab(tab.id)}
-                                                className={cn(
-                                                    "relative pb-3 text-xs font-semibold transition-colors",
-                                                    activeTab === tab.id
-                                                        ? "text-slate-900"
-                                                        : "text-slate-400 hover:text-slate-600"
-                                                )}
-                                            >
-                                                {tab.label}
-                                                {activeTab === tab.id && (
-                                                    <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-slate-900" />
-                                                )}
-                                            </button>
-                                        ))}
-                                    </nav>
-                                    <span className="hidden text-xs text-slate-400 sm:inline">
-                                        Menampilkan 5 data terbaru
-                                    </span>
-                                </div>
-                            </div>
+                            {/* Synchronized Realtime Registrations Table */}
+                            <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200/50 space-y-4">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div>
+                                        <h3 className="text-base font-bold text-slate-900">Data Pendaftaran Pasien Terbaru</h3>
+                                        <p className="text-xs text-slate-400">Menampilkan {filteredRegistrations.length} pendaftaran dari database</p>
+                                    </div>
 
-                            {/* Table Content */}
-                            {(data?.recent_registrations ?? []).length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-16">
-                                    <ClipboardList className="mb-3 h-8 w-8 text-slate-300" />
-                                    <p className="text-sm text-slate-400">Belum ada data pendaftaran</p>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => navigate("/pendaftaran")} className="flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1.5 rounded-xl hover:bg-emerald-100">
+                                            <span>Buka Modul Pendaftaran</span>
+                                            <ChevronRight className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
                                 </div>
-                            ) : (
+
+                                {/* Table */}
                                 <div className="overflow-x-auto">
                                     <table className="w-full text-left text-xs">
-                                        <thead className="bg-slate-50">
-                                            <tr className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                                                <th className="px-6 py-3">No. Kunjungan</th>
-                                                <th className="px-6 py-3">Nama Pasien</th>
-                                                <th className="px-6 py-3">Poliklinik</th>
-                                                <th className="px-6 py-3">Dokter</th>
-                                                <th className="px-6 py-3 text-right">Status</th>
+                                        <thead>
+                                            <tr className="border-b border-slate-100 text-[11px] font-medium text-slate-400">
+                                                <th className="pb-3 pt-1 font-semibold">No. Reg</th>
+                                                <th className="pb-3 pt-1 font-semibold">Nama Pasien</th>
+                                                <th className="pb-3 pt-1 font-semibold">Poliklinik</th>
+                                                <th className="pb-3 pt-1 font-semibold">Dokter PJ</th>
+                                                <th className="pb-3 pt-1 font-semibold text-right">Status</th>
+                                                <th className="pb-3 pt-1 font-semibold text-center">Aksi</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-slate-100">
-                                            {data!.recent_registrations.map((r, idx) => (
-                                                <tr key={idx} className="transition-colors hover:bg-slate-50">
-                                                    <td className="px-6 py-4 font-mono text-xs text-slate-500">
-                                                        {r.no}
-                                                    </td>
-                                                    <td className="px-6 py-4 font-semibold text-slate-900">
-                                                        {r.name}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-slate-600">{r.poli}</td>
-                                                    <td className="px-6 py-4 text-slate-600">{r.dokter}</td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <span className={cn(
-                                                            "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold",
-                                                            r.status.toLowerCase().includes("selesai")
-                                                                ? "bg-emerald-50 text-emerald-700"
-                                                                : r.status.toLowerCase().includes("periksa")
-                                                                    ? "bg-blue-50 text-blue-700"
-                                                                    : "bg-amber-50 text-amber-700"
-                                                        )}>
-                                                            <span className={cn(
-                                                                "h-1.5 w-1.5 rounded-full",
-                                                                r.status.toLowerCase().includes("selesai")
-                                                                    ? "bg-emerald-500"
-                                                                    : "bg-amber-500"
-                                                            )} />
-                                                            {r.status}
-                                                        </span>
+                                        <tbody className="divide-y divide-slate-100/80">
+                                            {filteredRegistrations.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={6} className="py-8 text-center text-slate-400 text-xs">
+                                                        Tidak ada data pendaftaran yang sesuai pencarian.
                                                     </td>
                                                 </tr>
-                                            ))}
+                                            ) : (
+                                                filteredRegistrations.map((row, idx) => (
+                                                    <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                                        <td className="py-3.5 pr-3 font-mono text-[11px] text-slate-500 font-semibold">
+                                                            {row.no}
+                                                        </td>
+                                                        <td className="py-3.5 px-2">
+                                                            <p className="font-bold text-slate-900">{row.name}</p>
+                                                            <span className="text-[10px] text-slate-400 font-medium">JK: {row.jenis_kelamin === "L" ? "Laki-laki" : "Perempuan"}</span>
+                                                        </td>
+                                                        <td className="py-3.5 px-2 text-slate-600 font-medium">
+                                                            {row.poli}
+                                                        </td>
+                                                        <td className="py-3.5 px-2 text-slate-600">
+                                                            {row.dokter}
+                                                        </td>
+                                                        <td className="py-3.5 pl-2 text-right">
+                                                            <span className={cn(
+                                                                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold",
+                                                                row.status.toLowerCase().includes("selesai") && "bg-emerald-50 text-emerald-600",
+                                                                row.status.toLowerCase().includes("periksa") && "bg-blue-50 text-blue-600",
+                                                                !row.status.toLowerCase().includes("selesai") && !row.status.toLowerCase().includes("periksa") && "bg-amber-50 text-amber-600"
+                                                            )}>
+                                                                <span className={cn(
+                                                                    "h-1.5 w-1.5 rounded-full",
+                                                                    row.status.toLowerCase().includes("selesai") ? "bg-emerald-500" : "bg-amber-500"
+                                                                )} />
+                                                                {row.status}
+                                                            </span>
+                                                        </td>
+                                                        <td className="py-3.5 text-center">
+                                                            <button
+                                                                onClick={() => navigate("/pemeriksaan")}
+                                                                className="rounded-lg bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 px-2.5 py-1 text-[10px] font-bold text-slate-700 transition-colors"
+                                                            >
+                                                                Periksa
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
                                         </tbody>
                                     </table>
                                 </div>
-                            )}
+                            </div>
+
                         </div>
+
+                        {/* =================================================== */}
+                        {/* RIGHT COLUMN: CARDS, LIMIT, & RECENT (4 COLS)       */}
+                        {/* =================================================== */}
+                        <div className="lg:col-span-4 space-y-6">
+
+                            {/* Section 1: My Card Widget & SIMRS Financial Overview */}
+                            <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/50 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-sm font-bold text-slate-900">Kas SIMRS & Finansial</h3>
+                                    <button onClick={() => navigate("/laporan")} className="flex items-center gap-1 text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-full hover:bg-emerald-100 transition-colors">
+                                        <Plus className="h-3.5 w-3.5" /> + Billing RS
+                                    </button>
+                                </div>
+
+                                {/* Minimalist Dark Green Credit Card */}
+                                <div className="rounded-2xl bg-[#1C3A2B] p-5 text-white shadow-md relative overflow-hidden space-y-6">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-1 text-emerald-300">
+                                            <div className="h-3 w-3 rounded-full bg-emerald-400/80" />
+                                            <div className="h-3 w-3 rounded-full bg-emerald-500/50 -ml-1.5" />
+                                        </div>
+                                        <CreditCard className="h-5 w-5 text-emerald-200/60" />
+                                    </div>
+
+                                    <div>
+                                        <p className="text-lg font-bold tracking-wide">RSUD SIMRS UTAMA</p>
+                                        <div className="flex justify-between items-end mt-4">
+                                            <div>
+                                                <p className="text-[10px] text-emerald-200/60 uppercase tracking-wider">Saldo Operasional DB</p>
+                                                <p className="text-2xl font-extrabold tracking-tight text-white mt-0.5">{pendapatanStat}</p>
+                                            </div>
+                                            <div className="flex gap-3 text-[10px] text-right text-emerald-200/80">
+                                                <div>
+                                                    <p className="text-[9px] text-emerald-200/50">VA RS</p>
+                                                    <p className="font-bold">8802-91</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Action Shortcuts */}
+                                <div className="grid grid-cols-4 gap-2 pt-1 text-center">
+                                    {[
+                                        { icon: UserPlus, label: "Daftar", path: "/pendaftaran" },
+                                        { icon: Stethoscope, label: "Dokter", path: "/pemeriksaan" },
+                                        { icon: PillBottle, label: "Farmasi", path: "/farmasi" },
+                                        { icon: Bed, label: "Ranap", path: "/rawat-inap" },
+                                    ].map((act, i) => (
+                                        <button key={i} onClick={() => navigate(act.path)} className="flex flex-col items-center gap-1.5 group">
+                                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-50 text-slate-700 ring-1 ring-slate-200/60 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-all">
+                                                <act.icon className="h-4 w-4" />
+                                            </div>
+                                            <span className="text-[11px] font-medium text-slate-600 group-hover:text-slate-900">{act.label}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Section 2: Bangsal & Bed Occupancy Live Meter */}
+                            <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/50 space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-sm font-bold text-slate-900">Kapasitas Rawat Inap</h3>
+                                    <button onClick={() => navigate("/rawat-inap")} className="text-xs font-bold text-emerald-600 hover:underline">
+                                        Detail Ranap
+                                    </button>
+                                </div>
+                                <p className="text-xs text-slate-500">
+                                    <span className="font-bold text-slate-900">{filledBeds} Bed Terisi</span> dari kapasitas {totalBeds} bed
+                                </p>
+
+                                {/* Progress bar */}
+                                <div className="relative h-2.5 w-full rounded-full bg-slate-100 overflow-hidden">
+                                    <div className="h-full rounded-full bg-emerald-500 transition-all" style={{ width: `${roomOccupancy}%` }} />
+                                </div>
+                                <div className="flex justify-between text-[11px] text-slate-500 font-medium">
+                                    <span>Tersedia: {rooms?.kosong ?? 7} bed</span>
+                                    <span className="font-bold text-emerald-600">{roomOccupancy}% Occupancy</span>
+                                </div>
+                            </div>
+
+                            {/* Section 3: Recent Activity Timeline */}
+                            <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/50 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-sm font-bold text-slate-900">Log Aktivitas Layanan RS</h3>
+                                    <button onClick={load} className="text-slate-400 hover:text-slate-600">
+                                        <RefreshCw className="h-4 w-4" />
+                                    </button>
+                                </div>
+
+                                {/* Today list */}
+                                <div>
+                                    <p className="text-xs font-bold text-slate-400 mb-3">Hari Ini</p>
+                                    <div className="space-y-3">
+                                        {RECENT_ACTIVITIES.filter((a) => a.dayGroup === "Today").map((act) => (
+                                            <div key={act.id} className="flex items-start gap-3">
+                                                <img src={act.avatar} alt="Avatar" className="h-8 w-8 rounded-full object-cover shrink-0 mt-0.5" />
+                                                <div className="flex-1 text-xs">
+                                                    <p className="font-semibold text-slate-800 leading-snug">{act.text}</p>
+                                                    <p className="text-[10px] text-slate-400 mt-0.5">{act.time}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Yesterday list */}
+                                <div className="pt-2 border-t border-slate-100">
+                                    <p className="text-xs font-bold text-slate-400 mb-3">Kemarin</p>
+                                    <div className="space-y-3">
+                                        {RECENT_ACTIVITIES.filter((a) => a.dayGroup === "Yesterday").map((act) => (
+                                            <div key={act.id} className="flex items-start gap-3">
+                                                <img src={act.avatar} alt="Avatar" className="h-8 w-8 rounded-full object-cover shrink-0 mt-0.5" />
+                                                <div className="flex-1 text-xs">
+                                                    <p className="font-semibold text-slate-800 leading-snug">{act.text}</p>
+                                                    <p className="text-[10px] text-slate-400 mt-0.5">{act.time}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
                     </div>
                 )}
             </div>

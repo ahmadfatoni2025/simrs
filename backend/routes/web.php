@@ -123,3 +123,16 @@ Route::get('/', function () {
 
     return view('welcome', compact('tables', 'routes'));
 });
+
+// Test toast notifications
+Route::get('/test-toast', function () {
+    return view('test-toast');
+});
+
+Route::get('/api/test-error', function () {
+    return response()->json(['message' => 'Server error simulated!'], 500);
+});
+
+Route::get('/api/test-success', function () {
+    return response()->json(['message' => 'Success response!']);
+});

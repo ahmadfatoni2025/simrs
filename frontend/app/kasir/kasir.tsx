@@ -1,227 +1,229 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router";
 import {
-    Banknote,
     Receipt,
     Wallet,
-    ArrowUpRight,
-    ArrowDownLeft,
-    CheckCircle2,
     Clock,
-    Search,
-    Filter,
-    Plus,
-    Printer,
-    Building2,
-    ShieldCheck,
-    CreditCard,
-    FileSpreadsheet,
+    Banknote,
     Scale,
-    TrendingUp
+    Calendar,
+    Search,
+    Printer,
+    CheckCircle2,
+    Sparkles,
+    CreditCard,
+    DollarSign,
+    FileSpreadsheet
 } from "lucide-react";
 import { AppShell } from "~/components/layout/AppShell";
 import { cn } from "~/lib/utils";
 
+export type KasirTab =
+    | "pembayaran"
+    | "deposit"
+    | "buka-tutup"
+    | "bendahara"
+    | "akuntansi";
+
+interface TagihanItem {
+    id: string;
+    noNota: string;
+    pasien: string;
+    norm: string;
+    layanan: string;
+    penjamin: "BPJS" | "Umum" | "Asuransi";
+    totalBiaya: number;
+    status: "Belum Bayar" | "Lunas" | "Deposit";
+    tanggal: string;
+}
+
+const MOCK_TAGIHAN: TagihanItem[] = [
+    { id: "1", noNota: "KW-2026-0912", pasien: "Budi Santoso", norm: "RM-2026-0041", layanan: "Rawat Jalan - Poli Umum", penjamin: "BPJS", totalBiaya: 150000, status: "Lunas", tanggal: "05 Okt 2026" },
+    { id: "2", noNota: "KW-2026-0913", pasien: "Siti Rahma", norm: "RM-2026-0042", layanan: "Rawat Jalan - Poli Anak", penjamin: "Umum", totalBiaya: 285000, status: "Belum Bayar", tanggal: "05 Okt 2026" },
+    { id: "3", noNota: "KW-2026-0914", pasien: "Ahmad Fauzi", norm: "RM-2026-0044", layanan: "Rawat Inap - Kamar Melati 01", penjamin: "Umum", totalBiaya: 1450000, status: "Deposit", tanggal: "05 Okt 2026" },
+];
+
 export default function KasirPage() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const currentTab = searchParams.get("tab") || "pembayaran";
-    const [search, setSearch] = useState("");
+    const activeTab = (searchParams.get("tab") || "pembayaran") as KasirTab;
 
-    const tabs = [
-        { id: "pembayaran", label: "Pembayaran & Billing Kasir", icon: Receipt },
-        { id: "deposit", label: "Deposit Pasien", icon: Wallet },
-        { id: "buka-tutup", label: "Buka / Tutup Kasir", icon: Clock },
-        { id: "bendahara", label: "Penerimaan & Pengeluaran Kas", icon: Banknote },
-        { id: "akuntansi", label: "Jurnal & Buku Besar", icon: Scale },
-    ];
+    const setTab = (tab: string) => {
+        if (tab === "pembayaran") setSearchParams({});
+        else setSearchParams({ tab });
+    };
+
+    const [selectedTagihan, setSelectedTagihan] = useState<TagihanItem | null>(MOCK_TAGIHAN[1]);
+    const [metodeBayar, setMetodeBayar] = useState<"Tunai" | "QRIS" | "EDC / Debit">("Tunai");
+
+    const handleProsesBayar = () => {
+        if (!selectedTagihan) return;
+        alert(`Pembayaran kuitansi ${selectedTagihan.noNota} atas nama ${selectedTagihan.pasien} sebesar Rp ${selectedTagihan.totalBiaya.toLocaleString("id-ID")} dengan metode ${metodeBayar} BERHASIL LUNAS!`);
+    };
 
     return (
         <AppShell>
             <div className="space-y-6">
-                {/* Header Banner */}
-                <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 p-6 text-white shadow-lg">
-                    <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
-                    <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <div className="flex items-center gap-2 text-blue-100 text-xs font-semibold uppercase tracking-wider mb-1">
-                                <Banknote className="h-4 w-4" /> Modul Keuangan & Kasir SIMRS
-                            </div>
-                            <h1 className="text-2xl font-extrabold tracking-tight">Manajemen Kasir, Billing & Akuntansi RS</h1>
-                            <p className="mt-1 text-xs text-blue-100 max-w-2xl">
-                                Pusat transaksi billing pasien, arus kas deposit, penerimaan kasir, jurnal otomatis, dan rekapitulasi buku besar rumah sakit.
-                            </p>
-                        </div>
+                {/* Header */}
+                <div className="flex flex-col gap-4 border-b border-slate-200/80 pb-5 md:flex-row md:items-center md:justify-between">
+                    <div>
                         <div className="flex items-center gap-2">
-                            <button
-                                type="button"
-                                className="flex items-center gap-1.5 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-bold text-white hover:bg-white/20 transition-all shadow-2xs backdrop-blur-xs"
-                            >
-                                <Printer className="h-4 w-4" /> Cetak Rekap Shift
-                            </button>
-                            <button
-                                type="button"
-                                className="flex items-center gap-1.5 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-blue-700 hover:bg-blue-50 transition-all shadow-md active:scale-98"
-                            >
-                                <Plus className="h-4 w-4" /> Transaksi Kasir Baru
-                            </button>
+                            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                                Kasir & Billing Pembayaran
+                            </h1>
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                                <Receipt className="h-3.5 w-3.5" /> Billing Kasir SIMRS
+                            </span>
                         </div>
-                    </div>
-                </div>
-
-                {/* Statistik Cards */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs">
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-500">Pendapatan Hari Ini</span>
-                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-                                <ArrowDownLeft className="h-5 w-5" />
-                            </div>
-                        </div>
-                        <p className="mt-3 text-xl font-extrabold text-slate-900">Rp 48.750.000</p>
-                        <p className="mt-1 text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
-                            <TrendingUp className="h-3 w-3" /> +14.2% dari kemarin
+                        <p className="mt-1 text-xs text-slate-500">
+                            Penerimaan Kasir, Billing Pasien Rawat Jalan / Inap, Deposit Pasien, & Jurnal Akuntansi.
                         </p>
                     </div>
 
-                    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs">
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-500">Pending Billing Pasien</span>
-                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-                                <Clock className="h-5 w-5" />
-                            </div>
-                        </div>
-                        <p className="mt-3 text-xl font-extrabold text-slate-900">18 Pasien</p>
-                        <p className="mt-1 text-[11px] text-slate-400 font-medium">Menunggu verifikasi pembayaran</p>
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs">
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-500">Total Deposit Pasien</span>
-                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                                <Wallet className="h-5 w-5" />
-                            </div>
-                        </div>
-                        <p className="mt-3 text-xl font-extrabold text-slate-900">Rp 125.400.000</p>
-                        <p className="mt-1 text-[11px] text-slate-400 font-medium">Rawat Inap & Tindakan MCU</p>
-                    </div>
-
-                    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-2xs">
-                        <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-slate-500">Status Shift Kasir</span>
-                            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                                <CheckCircle2 className="h-5 w-5" />
-                            </div>
-                        </div>
-                        <p className="mt-3 text-xl font-extrabold text-slate-900">Shift 1 (Aktif)</p>
-                        <p className="mt-1 text-[11px] text-emerald-600 font-semibold">Kasir: Siti Rahmawati, S.E.</p>
+                    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-2xs">
+                        <Calendar className="h-4 w-4 text-emerald-600" />
+                        <span>05 Oktober 2026</span>
                     </div>
                 </div>
 
-                {/* Navigation Tabs */}
-                <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto pb-2 scrollbar-none">
-                    {tabs.map((tab) => {
+                {/* Sub-menu Tabs */}
+                <div className="flex items-center gap-1.5 rounded-2xl bg-slate-100 p-1.5 border border-slate-200/60 shadow-inner overflow-x-auto scrollbar-none">
+                    {[
+                        { id: "pembayaran", label: "Pembayaran & Billing Kasir", icon: Receipt },
+                        { id: "deposit", label: "Deposit Pasien", icon: Wallet },
+                        { id: "buka-tutup", label: "Buka / Tutup Kasir", icon: Clock },
+                        { id: "bendahara", label: "Bendahara & Penerimaan Kas", icon: Banknote },
+                        { id: "akuntansi", label: "Jurnal & Akuntansi", icon: Scale },
+                    ].map((tab) => {
                         const Icon = tab.icon;
-                        const isActive = currentTab === tab.id;
+                        const isSelected = activeTab === tab.id || (activeTab === ("" as any) && tab.id === "pembayaran");
                         return (
                             <button
                                 key={tab.id}
                                 type="button"
-                                onClick={() => setSearchParams({ tab: tab.id })}
+                                onClick={() => setTab(tab.id)}
                                 className={cn(
-                                    "flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap",
-                                    isActive
-                                        ? "bg-blue-600 text-white shadow-md"
-                                        : "bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200/80"
+                                    "flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all whitespace-nowrap cursor-pointer",
+                                    isSelected
+                                        ? "bg-white text-emerald-700 shadow-sm font-bold"
+                                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
                                 )}
                             >
                                 <Icon className="h-4 w-4" />
-                                {tab.label}
+                                <span>{tab.label}</span>
                             </button>
                         );
                     })}
                 </div>
 
-                {/* Main Content Area */}
-                <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-2xs space-y-4">
-                    {/* Search & Action Bar */}
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div className="relative w-full sm:w-80">
-                            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Cari No. Billing, Nama Pasien, No RM..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-10 pr-3.5 py-2 text-xs font-semibold text-slate-800 placeholder-slate-400 focus:border-blue-600 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <button type="button" className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-                                <Filter className="h-3.5 w-3.5 text-slate-500" /> Filter Status
-                            </button>
-                            <button type="button" className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-                                <FileSpreadsheet className="h-3.5 w-3.5 text-slate-500" /> Export Excel
-                            </button>
-                        </div>
-                    </div>
+                {/* TAB 1: PEMBAYARAN & BILLING KASIR */}
+                {(activeTab === "pembayaran" || !searchParams.get("tab")) && (
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                        <div className="lg:col-span-2 space-y-4">
+                            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
+                                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">
+                                    Daftar Tagihan Pasien Hari Ini
+                                </h3>
 
-                    {/* Table List Billing Pasien */}
-                    <div className="overflow-x-auto rounded-xl border border-slate-200/80">
-                        <table className="w-full text-left text-xs">
-                            <thead className="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
-                                <tr>
-                                    <th className="px-4 py-3">No. Kwitansi / Billing</th>
-                                    <th className="px-4 py-3">Pasien & No RM</th>
-                                    <th className="px-4 py-3">Layanan / Poli</th>
-                                    <th className="px-4 py-3">Penjamin</th>
-                                    <th className="px-4 py-3">Total Biaya</th>
-                                    <th className="px-4 py-3">Metode Bayar</th>
-                                    <th className="px-4 py-3">Status</th>
-                                    <th className="px-4 py-3 text-right">Aksi</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-200/80 text-slate-700 font-medium">
-                                {[
-                                    { id: "INV-2026-0901", rm: "RM-9941", nama: "Budi Santoso", layanan: "Poli Penyakit Dalam", penjamin: "BPJS Kesehatan", total: 450000, metode: "BPJS (Klaim)", status: "Lunas" },
-                                    { id: "INV-2026-0902", rm: "RM-9942", nama: "Siti Aminah", layanan: "Rawat Inap Bed 3A", penjamin: "Umum / Tunai", total: 3250000, metode: "QRIS", status: "Lunas" },
-                                    { id: "INV-2026-0903", rm: "RM-9943", nama: "Ahmad Dahlan", layanan: "Laboratorium & Radiologi", penjamin: "Asuransi Mandiri", total: 820000, metode: "Transfer Bank", status: "Pending" },
-                                    { id: "INV-2026-0904", rm: "RM-9944", nama: "Dewi Lestari", layanan: "Poli Kebidanan", penjamin: "Umum / Tunai", total: 275000, metode: "Tunai", status: "Lunas" },
-                                ].map((row) => (
-                                    <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
-                                        <td className="px-4 py-3 font-bold text-slate-900">{row.id}</td>
-                                        <td className="px-4 py-3">
-                                            <div className="font-bold text-slate-900">{row.nama}</div>
-                                            <div className="text-[11px] text-slate-400">{row.rm}</div>
-                                        </td>
-                                        <td className="px-4 py-3">{row.layanan}</td>
-                                        <td className="px-4 py-3">
-                                            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600">
-                                                <ShieldCheck className="h-3 w-3 text-blue-600" /> {row.penjamin}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 font-bold text-slate-900">
-                                            Rp {row.total.toLocaleString("id-ID")}
-                                        </td>
-                                        <td className="px-4 py-3 text-xs">{row.metode}</td>
-                                        <td className="px-4 py-3">
-                                            <span className={cn(
-                                                "inline-flex rounded-full px-2.5 py-0.5 text-[11px] font-bold capitalize",
-                                                row.status === "Lunas" ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
-                                            )}>
-                                                {row.status}
-                                            </span>
-                                        </td>
-                                        <td className="px-4 py-3 text-right">
-                                            <button type="button" className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50">
-                                                <Printer className="h-3 w-3 text-slate-500" /> Detail
+                                <div className="space-y-3">
+                                    {MOCK_TAGIHAN.map((t) => (
+                                        <div key={t.id} className="flex items-center justify-between rounded-xl bg-slate-50 p-4 border border-slate-100">
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-mono text-xs font-bold text-blue-600">{t.noNota}</span>
+                                                    <span className={cn(
+                                                        "rounded-full px-2 py-0.5 text-[10px] font-bold",
+                                                        t.status === "Lunas" ? "bg-emerald-50 text-emerald-700" :
+                                                        t.status === "Deposit" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"
+                                                    )}>
+                                                        {t.status}
+                                                    </span>
+                                                </div>
+                                                <h4 className="text-sm font-bold text-slate-900 mt-1">{t.pasien} ({t.norm})</h4>
+                                                <p className="text-xs text-slate-500">{t.layanan} • Penjamin: {t.penjamin}</p>
+                                                <p className="text-xs font-extrabold text-emerald-600 mt-1">
+                                                    Rp {t.totalBiaya.toLocaleString("id-ID")}
+                                                </p>
+                                            </div>
+
+                                            <button
+                                                onClick={() => setSelectedTagihan(t)}
+                                                className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-emerald-500 cursor-pointer"
+                                            >
+                                                {t.status === "Lunas" ? "Lihat Kuitansi" : "Bayar Kasir"}
                                             </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right Billing Checkout Panel */}
+                        <div className="space-y-4">
+                            {selectedTagihan ? (
+                                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
+                                    <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                                        <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Rincian Billing Pembayaran</h4>
+                                        <button onClick={() => alert(`Mencetak Kuitansi ${selectedTagihan.noNota}`)} className="text-xs text-emerald-600 font-bold flex items-center gap-1">
+                                            <Printer className="h-3.5 w-3.5" /> Cetak
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-2 text-xs bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                        <p><span className="text-slate-400">Nota:</span> <strong className="font-mono">{selectedTagihan.noNota}</strong></p>
+                                        <p><span className="text-slate-400">Pasien:</span> <strong>{selectedTagihan.pasien}</strong></p>
+                                        <p><span className="text-slate-400">Poli / Unit:</span> <strong>{selectedTagihan.layanan}</strong></p>
+                                        <p><span className="text-slate-400">Penjamin:</span> <strong>{selectedTagihan.penjamin}</strong></p>
+                                    </div>
+
+                                    <div className="border-t border-slate-100 pt-3 space-y-2 text-xs">
+                                        <label className="block font-bold text-slate-700">Metode Pembayaran</label>
+                                        <div className="grid grid-cols-3 gap-1.5">
+                                            {(["Tunai", "QRIS", "EDC / Debit"] as const).map((m) => (
+                                                <button
+                                                    key={m}
+                                                    type="button"
+                                                    onClick={() => setMetodeBayar(m)}
+                                                    className={cn(
+                                                        "rounded-xl border py-2 text-[11px] font-bold transition-all cursor-pointer",
+                                                        metodeBayar === m ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-700 border-slate-200"
+                                                    )}
+                                                >
+                                                    {m}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="border-t border-slate-100 pt-3 flex items-center justify-between text-xs">
+                                        <span className="text-slate-500 font-semibold">Total Tagihan:</span>
+                                        <span className="text-lg font-black text-emerald-600">Rp {selectedTagihan.totalBiaya.toLocaleString("id-ID")}</span>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleProsesBayar}
+                                        className="w-full rounded-xl bg-emerald-600 py-3 text-xs font-bold text-white shadow-md hover:bg-emerald-500 transition-all cursor-pointer"
+                                    >
+                                        Proses Bayar & Cetak Kuitansi
+                                    </button>
+                                </div>
+                            ) : null}
+                        </div>
                     </div>
-                </div>
+                )}
+
+                {/* TAB 2, 3, 4, 5 OTHER VIEWS */}
+                {activeTab !== "pembayaran" && searchParams.get("tab") && (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-2xs text-center space-y-3">
+                        <Receipt className="h-10 w-10 text-emerald-600 mx-auto" />
+                        <h3 className="text-base font-bold text-slate-900">
+                            Modul {activeTab === "deposit" ? "Deposit Pasien Rawat Inap" : activeTab === "buka-tutup" ? "Buka / Tutup Kasir Shift" : activeTab === "bendahara" ? "Bendahara & Penerimaan Kas" : "Jurnal & Buku Besar Akuntansi"} SIMRS
+                        </h3>
+                        <p className="text-xs text-slate-500 max-w-md mx-auto">
+                            Fitur billing kasir dan keuangan rumah sakit terhubung ke jurnal akuntansi umum.
+                        </p>
+                    </div>
+                )}
             </div>
         </AppShell>
     );

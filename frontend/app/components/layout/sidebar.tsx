@@ -58,6 +58,10 @@ import {
 import { cn } from "~/lib/utils";
 import { masterEntities } from "~/master-data/masterDataConfig";
 
+/* -------------------------------------------------------------------------- */
+/*                                   TYPES                                    */
+/* -------------------------------------------------------------------------- */
+
 export interface NavItem {
     label: string;
     to: string;
@@ -65,6 +69,22 @@ export interface NavItem {
     badge?: string;
     children?: NavItem[];
 }
+
+export interface NavGroup {
+    title: string;
+    items: NavItem[];
+}
+
+interface SidebarProps {
+    collapsed?: boolean;
+    mobileOpen?: boolean;
+    onToggle?: () => void;
+    onCloseMobile?: () => void;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                MASTER DATA                                 */
+/* -------------------------------------------------------------------------- */
 
 const masterDataIcon: Record<string, LucideIcon> = {
     "barang-farmasi": PillBottle,
@@ -156,11 +176,6 @@ const masterDataNavItems: NavItem[] = [
     },
 ];
 
-export interface NavGroup {
-    title: string;
-    items: NavItem[];
-}
-
 export const navGroups: NavGroup[] = [
     {
         title: "Utama & Master",
@@ -250,7 +265,7 @@ export const navGroups: NavGroup[] = [
                 to: "/pemeriksaan",
                 icon: Stethoscope,
                 children: [
-                    { label: "Dashboard Kedokteran", to: "/pemeriksaan", icon: LayoutDashboard },
+                    { label: "Pemeriksaan Dokter", to: "/pemeriksaan", icon: LayoutDashboard },
                     { label: "Antrean Poliklinik", to: "/pemeriksaan?tab=antrean", icon: Clock },
                     { label: "Pemeriksaan & Anamnesis", to: "/pemeriksaan?tab=pemeriksaan", icon: Stethoscope },
                     { label: "E-Prescribing (Resep Elektronik)", to: "/pemeriksaan?tab=resep", icon: PillBottle },
@@ -391,6 +406,10 @@ export const navGroups: NavGroup[] = [
     },
 ];
 
+/* -------------------------------------------------------------------------- */
+/*                                  HELPERS                                   */
+/* -------------------------------------------------------------------------- */
+
 function isNavActive(item: NavItem, currentPath: string, currentSearch: string = ""): boolean {
     const fullUrl = currentPath + currentSearch;
     if (item.to === fullUrl) return true;
@@ -402,6 +421,10 @@ function isNavActive(item: NavItem, currentPath: string, currentSearch: string =
     }
     return false;
 }
+
+/* -------------------------------------------------------------------------- */
+/*                              SIDEBAR LINK                                  */
+/* -------------------------------------------------------------------------- */
 
 function SidebarLink({
     item,
@@ -422,42 +445,41 @@ function SidebarLink({
     return (
         <NavLink
             to={to}
-            className={() =>
-                cn(
-                    "group flex items-center gap-2.5 rounded-xl transition-all duration-150 select-none",
-                    depth === 0
-                        ? "px-3.5 py-2 text-xs font-semibold"
-                        : depth === 1
-                            ? "pl-8 pr-3 py-1.5 text-xs font-medium"
-                            : "pl-11 pr-3 py-1.5 text-[11px] font-medium",
-                    collapsed ? "justify-center px-0 py-2.5" : "",
-                    isActive
-                        ? "bg-blue-600 text-white shadow-md font-bold"
-                        : "text-slate-600 hover:bg-slate-200/50 hover:text-slate-900"
-                )
-            }
             title={collapsed ? item.label : undefined}
+            className={cn(
+                "group relative flex items-center rounded-lg select-none transition-all duration-150 py-1.5 px-2 text-xs font-medium",
+                collapsed ? "justify-center px-0 py-2" : "",
+                isActive
+                    ? "bg-slate-100 text-slate-900 font-bold shadow-xs"
+                    : "text-slate-700 hover:bg-slate-200/60 hover:text-slate-900"
+            )}
+            style={!collapsed && depth > 0 ? { paddingLeft: `${depth * 16 + 8}px` } : undefined}
         >
             <Icon
                 className={cn(
-                    "shrink-0 transition-colors",
-                    depth === 0
-                        ? "h-4 w-4"
-                        : depth === 1
-                            ? "h-3.5 w-3.5"
-                            : "h-3 w-3",
-                    isActive ? "text-white" : "text-slate-500 group-hover:text-slate-800"
+                    "shrink-0 transition-colors stroke-[1.8]",
+                    depth === 0 ? "h-4 w-4" : "h-3.5 w-3.5",
+                    isActive ? "text-black" : "text-slate-500 group-hover:text-slate-800"
                 )}
             />
-            {!collapsed && <span className="truncate flex-1">{item.label}</span>}
+            {!collapsed && <span className="truncate flex-1 ml-2">{item.label}</span>}
             {!collapsed && item.badge && (
-                <span className="rounded-full bg-rose-500 px-1.5 py-0.2 text-[9px] font-bold text-white shadow-2xs">
+                <span
+                    className={cn(
+                        "rounded-full px-1.5 py-0.2 text-[9px] font-bold",
+                        isActive ? "bg-white text-slate-900" : "bg-slate-200 text-slate-700"
+                    )}
+                >
                     {item.badge}
                 </span>
             )}
         </NavLink>
     );
 }
+
+/* -------------------------------------------------------------------------- */
+/*                            SIDEBAR NAV ITEM                                */
+/* -------------------------------------------------------------------------- */
 
 function SidebarNavItem({
     item,
@@ -471,8 +493,10 @@ function SidebarNavItem({
     onExpand?: () => void;
 }) {
     const location = useLocation();
-    const hasChildren = !!item.children && item.children.length > 0;
-    const childActive = hasChildren ? isNavActive(item, location.pathname, location.search) : false;
+    const hasChildren = !!item.children?.length;
+    const childActive = hasChildren
+        ? isNavActive(item, location.pathname, location.search)
+        : false;
 
     const [open, setOpen] = useState(childActive);
 
@@ -481,13 +505,22 @@ function SidebarNavItem({
     }, [childActive, location.pathname, location.search]);
 
     if (!hasChildren) {
-        return <SidebarLink item={item} to={item.to} icon={item.icon} depth={depth} collapsed={collapsed} />;
+        return (
+            <SidebarLink
+                item={item}
+                to={item.to}
+                icon={item.icon}
+                depth={depth}
+                collapsed={collapsed}
+            />
+        );
     }
 
     return (
-        <div>
+        <div className="relative">
             <button
                 type="button"
+                title={collapsed ? item.label : undefined}
                 onClick={() => {
                     if (collapsed) {
                         onExpand?.();
@@ -496,46 +529,45 @@ function SidebarNavItem({
                     }
                     setOpen((o) => !o);
                 }}
-                title={collapsed ? item.label : undefined}
                 className={cn(
-                    "group flex w-full items-center gap-2.5 rounded-xl transition-all duration-150 select-none",
-                    depth === 0
-                        ? "px-3.5 py-2 text-xs font-semibold"
-                        : depth === 1
-                            ? "pl-8 pr-3 py-1.5 text-xs font-semibold"
-                            : "pl-11 pr-3 py-1 text-[11px] font-medium",
-                    collapsed ? "justify-center px-0 py-2.5" : "",
-                    childActive && depth === 0
-                        ? "bg-slate-200/80 text-blue-700 font-bold"
-                        : childActive
-                            ? "bg-slate-200/60 text-slate-900 font-semibold"
-                            : open
-                                ? "bg-slate-200/30 text-slate-900"
-                                : "text-slate-600 hover:bg-slate-200/40 hover:text-slate-900"
+                    "group relative flex w-full items-center rounded-lg select-none py-1.5 px-2 text-xs font-semibold transition-all duration-150",
+                    collapsed ? "justify-center px-0 py-2" : "",
+                    childActive && !open
+                        ? "bg-slate-200/80 text-slate-950 font-bold border border-slate-300"
+                        : open
+                            ? "text-slate-900 font-bold bg-slate-200/40"
+                            : "text-slate-700 hover:bg-slate-200/50 hover:text-slate-900"
                 )}
+                style={
+                    !collapsed && depth > 0
+                        ? { paddingLeft: `${depth * 16 + 8}px` }
+                        : undefined
+                }
             >
+                {!collapsed && (
+                    <ChevronRight
+                        className={cn(
+                            "h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-150 stroke-[2] mr-1",
+                            open && "rotate-90 text-slate-700"
+                        )}
+                    />
+                )}
+
                 <item.icon
                     className={cn(
-                        "shrink-0 transition-colors",
-                        depth === 0 ? "h-4 w-4" : depth === 1 ? "h-3.5 w-3.5" : "h-3 w-3",
-                        childActive ? "text-blue-600" : "text-slate-500 group-hover:text-slate-800"
+                        "shrink-0 transition-colors stroke-[1.8]",
+                        depth === 0 ? "h-4 w-4" : "h-3.5 w-3.5",
+                        childActive ? "text-slate-950" : "text-slate-500 group-hover:text-slate-800"
                     )}
                 />
+
                 {!collapsed && (
-                    <>
-                        <span className="flex-1 text-left truncate">{item.label}</span>
-                        <ChevronRight
-                            className={cn(
-                                "h-3.5 w-3.5 text-slate-400 transition-transform duration-200",
-                                open && "rotate-90 text-slate-600"
-                            )}
-                        />
-                    </>
+                    <span className="flex-1 truncate text-left ml-2">{item.label}</span>
                 )}
             </button>
 
             {!collapsed && open && (
-                <div className="mt-0.5 space-y-0.5">
+                <div className="relative mt-0.5 ml-[15px] space-y-0.5 border-l border-slate-300 pl-1">
                     {item.children!.map((child) => (
                         <SidebarNavItem
                             key={child.to + child.label}
@@ -551,124 +583,185 @@ function SidebarNavItem({
     );
 }
 
+/* -------------------------------------------------------------------------- */
+/*                              HEADER MENU ITEM                              */
+/* -------------------------------------------------------------------------- */
+
+function HeaderMenuItem({
+    icon: Icon,
+    label,
+    onClick,
+    variant = "default",
+}: {
+    icon: LucideIcon;
+    label: string;
+    onClick: () => void;
+    variant?: "default" | "danger";
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={cn(
+                "flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition-colors",
+                variant === "danger"
+                    ? "text-rose-600 hover:bg-rose-50"
+                    : "text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+            )}
+        >
+            <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+            {label}
+        </button>
+    );
+}
+
+/* -------------------------------------------------------------------------- */
+/*                              SIDEBAR HEADER                                */
+/* -------------------------------------------------------------------------- */
+
 function SidebarHeader({
     collapsed,
-    isHovered,
     onToggle,
 }: {
     collapsed?: boolean;
-    isHovered?: boolean;
     onToggle?: () => void;
 }) {
     const navigate = useNavigate();
     const [dropdownOpen, setDropdownOpen] = useState(false);
 
     return (
-        <div className="relative p-3.5 border-b border-slate-200/80 bg-white">
-            <div className="flex items-center justify-between gap-2">
-                {collapsed ? (
+        <div className="border-b border-slate-200/80 p-3">
+            {collapsed ? (
+                <button
+                    type="button"
+                    onClick={onToggle}
+                    title="Buka menu"
+                    className="mx-auto flex h-9 w-9 items-center justify-center rounded-md text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                >
+                    <PanelLeftOpen className="h-4 w-4" />
+                </button>
+            ) : (
+                <div className="flex items-center gap-1.5">
+                    <button
+                        type="button"
+                        onClick={() => setDropdownOpen((p) => !p)}
+                        className="flex min-w-0 flex-1 items-center gap-2.5 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-slate-100"
+                    >
+                        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-slate-900 text-white">
+                            <Activity className="h-3.5 w-3.5" />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                            {/* Baris 1: Nama Dokter/User + Arrow Down */}
+                            <div className="flex items-center gap-1">
+                                <p className="truncate text-[13px] font-semibold leading-tight text-slate-900">
+                                    {User?.name || "dr. Alex Sp.A"} {/* <-- Tampilkan Nama di sini */}
+                                </p>
+                                <ChevronDown
+                                    className={cn(
+                                        "h-3 w-3 shrink-0 text-slate-400 transition-transform duration-150",
+                                        dropdownOpen && "rotate-180"
+                                    )}
+                                />
+                            </div>
+
+                            {/* Baris 2: Spesialis/Peran */}
+                            <p className="truncate text-[11px] leading-tight text-slate-500">
+                                {User?.name || "Spesialis Anak"} {/* <-- Tampilkan Spesialisasi di sini */}
+                            </p>
+                        </div>
+                    </button>
+
                     <button
                         type="button"
                         onClick={onToggle}
-                        title="Buka menu sidebar"
-                        className={cn(
-                            "flex h-10 w-10 mx-auto items-center justify-center rounded-xl bg-slate-900 text-white shadow-md hover:bg-blue-600 transition-all",
-                            isHovered && "scale-105"
-                        )}
+                        title="Ciutkan menu"
+                        className="hidden h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 lg:flex"
                     >
-                        <PanelLeftOpen className="h-5 w-5" />
-                    </button>
-                ) : (
-                    <>
-                        <div
-                            onClick={() => setDropdownOpen((prev) => !prev)}
-                            title="Menu Akun & Profil"
-                            className="flex items-center gap-2.5 min-w-0 flex-1 rounded-xl border border-slate-200/80 bg-slate-50 p-2 shadow-2xs cursor-pointer hover:bg-slate-100 transition-all relative"
-                        >
-                            <img
-                                src="/logo.jpg"
-                                onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/public/logo.jpg"; }}
-                                alt="RS"
-                                className="h-9 w-9 rounded-xl object-cover border border-slate-200"
-                            />
-                            <div className="min-w-0 flex-1">
-                                <p className="truncate text-xs font-extrabold text-slate-900 leading-tight">RSUD Sidoarjo</p>
-                                <p className="truncate text-[10px] text-slate-400 font-medium">dr.rina@simrs.id</p>
-                            </div>
-                            <ChevronDown className={cn("h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform duration-200", dropdownOpen && "rotate-180 text-slate-700")} />
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={onToggle}
-                            title="Ciutkan menu"
-                            className="hidden lg:flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 shadow-2xs hover:bg-slate-100 hover:text-slate-900 transition-all"
-                        >
-                            <PanelLeftClose className="h-4 w-4" />
-                        </button>
-                    </>
-                )}
-            </div>
-
-            {/* Dropdown Menu untuk Pengaturan Akun & Logout */}
-            {!collapsed && dropdownOpen && (
-                <>
-                    <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
-
-                    <div className="absolute left-3.5 right-3.5 top-[60px] z-20 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl animate-in fade-in slide-in-from-top-2 duration-150 space-y-0.5">
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setDropdownOpen(false);
-                                navigate("/pengaturan");
-                            }}
-                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all"
-                        >
-                            <User className="h-4 w-4 text-blue-600" />
-                            Pengaturan Akun
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setDropdownOpen(false);
-                                navigate("/login");
-                            }}
-                            className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-all"
-                        >
-                            <LogOut className="h-4 w-4 text-rose-500" />
-                            Keluar (Logout)
-                        </button>
-                    </div>
-                </>
-            )}
-
-            {!collapsed && (
-                <div className="mt-2.5">
-                    <button
-                        type="button"
-                        onClick={() => navigate("/pendaftaran/registrasi-baru")}
-                        className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-blue-600 py-2 px-3 text-xs font-bold text-white shadow-md hover:bg-blue-500 active:scale-98 transition-all"
-                    >
-                        <Plus className="h-4 w-4" />
-                        Pendaftaran Baru
+                        <PanelLeftClose className="h-4 w-4" />
                     </button>
                 </div>
+            )}
+
+            {!collapsed && dropdownOpen && (
+                <>
+                    <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setDropdownOpen(false)}
+                    />
+                    <div className="absolute left-3 right-3 top-[52px] z-20 rounded-lg border border-slate-200 bg-white p-1 shadow-lg">
+                        <div className="border-b border-slate-100 px-3 py-2">
+                            <p className="text-[12px] font-semibold text-slate-900">
+                                dr. Rina Masruroh
+                            </p>
+                            <p className="truncate text-[11px] text-slate-500">
+                                dr.rina@simrs.id
+                            </p>
+                        </div>
+                        <div className="mt-1 space-y-0.5">
+                            <HeaderMenuItem
+                                icon={User}
+                                label="Pengaturan Akun"
+                                onClick={() => {
+                                    setDropdownOpen(false);
+                                    navigate("/pengaturan");
+                                }}
+                            />
+                            <HeaderMenuItem
+                                icon={Plus}
+                                label="Pendaftaran Pasien Baru"
+                                onClick={() => {
+                                    setDropdownOpen(false);
+                                    navigate("/pendaftaran/registrasi-baru");
+                                }}
+                            />
+                            <HeaderMenuItem
+                                icon={LogOut}
+                                label="Keluar"
+                                variant="danger"
+                                onClick={() => {
+                                    setDropdownOpen(false);
+                                    navigate("/login");
+                                }}
+                            />
+                        </div>
+                    </div>
+                </>
             )}
         </div>
     );
 }
 
-function SidebarNav({ collapsed, onExpand }: { collapsed: boolean; onExpand?: () => void }) {
+/* -------------------------------------------------------------------------- */
+/*                                SIDEBAR NAV                                 */
+/* -------------------------------------------------------------------------- */
+
+function SidebarNav({
+    collapsed,
+    onExpand,
+}: {
+    collapsed: boolean;
+    onExpand?: () => void;
+}) {
     return (
-        <nav className="flex-1 px-3 py-3 overflow-y-auto space-y-5 text-xs scrollbar-thin scrollbar-thumb-slate-200">
+        <nav className="flex-1 space-y-5 overflow-y-auto px-2 py-3 scrollbar-thin scrollbar-thumb-slate-200">
             {navGroups.map((group) => (
                 <div key={group.title}>
-                    <p className={cn("px-3 mb-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400", collapsed && "text-center px-0")}>
-                        {collapsed ? "•••" : group.title}
-                    </p>
+                    {collapsed ? (
+                        <div className="mx-2 mb-2 h-px bg-slate-200" />
+                    ) : (
+                        <p className="mb-1.5 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                            {group.title}
+                        </p>
+                    )}
                     <div className="space-y-0.5">
                         {group.items.map((item) => (
-                            <SidebarNavItem key={item.to + item.label} item={item} collapsed={collapsed} onExpand={onExpand} />
+                            <SidebarNavItem
+                                key={item.to + item.label}
+                                item={item}
+                                collapsed={collapsed}
+                                onExpand={onExpand}
+                            />
                         ))}
                     </div>
                 </div>
@@ -677,49 +770,50 @@ function SidebarNav({ collapsed, onExpand }: { collapsed: boolean; onExpand?: ()
     );
 }
 
-interface SidebarProps {
-    collapsed?: boolean;
-    mobileOpen?: boolean;
-    onToggle?: () => void;
-    onCloseMobile?: () => void;
-}
+/* -------------------------------------------------------------------------- */
+/*                                  SIDEBAR                                   */
+/* -------------------------------------------------------------------------- */
 
-export function Sidebar({ collapsed = false, mobileOpen = false, onToggle, onCloseMobile }: SidebarProps) {
-    const [isHovered, setIsHovered] = useState(false);
-
+export function Sidebar({
+    collapsed = false,
+    mobileOpen = false,
+    onToggle,
+    onCloseMobile,
+}: SidebarProps) {
     return (
         <>
             {mobileOpen && (
                 <div
-                    className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-xs lg:hidden"
+                    className="fixed inset-0 z-40 bg-slate-900/30 backdrop-blur-[2px] lg:hidden"
                     onClick={onCloseMobile}
                 />
             )}
 
             <aside
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
                 className={cn(
-                    "fixed inset-y-0 left-0 z-50 flex flex-col bg-[#F8FAFC] border-r border-slate-200/80 transition-all duration-300 select-none shadow-xs",
-                    "lg:flex",
-                    mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
-                    collapsed ? "lg:w-[76px]" : "lg:w-64",
+                    "fixed inset-y-0 left-0 z-50 flex flex-col select-none",
+                    "border-r border-slate-200/80 bg-white",
+                    "transition-[width,transform] duration-200 ease-out",
+                    "lg:translate-x-0",
+                    mobileOpen ? "translate-x-0" : "-translate-x-full",
+                    collapsed ? "lg:w-[64px]" : "lg:w-64",
                     "w-64"
                 )}
             >
-                {/* Mobile Close Button */}
-                <div className="absolute top-3.5 right-3 z-10 lg:hidden">
-                    <button
-                        type="button"
-                        onClick={onCloseMobile}
-                        title="Tutup menu"
-                        className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition-all"
-                    >
-                        <X className="h-4 w-4" />
-                    </button>
-                </div>
+                {onCloseMobile && (
+                    <div className="absolute right-2 top-2 z-10 lg:hidden">
+                        <button
+                            type="button"
+                            onClick={onCloseMobile}
+                            title="Tutup menu"
+                            className="flex h-7 w-7 items-center justify-center rounded-md text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                        >
+                            <X className="h-4 w-4" />
+                        </button>
+                    </div>
+                )}
 
-                <SidebarHeader collapsed={collapsed} isHovered={isHovered} onToggle={onToggle} />
+                <SidebarHeader collapsed={collapsed} onToggle={onToggle} />
                 <SidebarNav collapsed={collapsed} onExpand={() => onToggle?.()} />
             </aside>
         </>
