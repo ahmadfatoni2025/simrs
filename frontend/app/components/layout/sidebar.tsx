@@ -75,11 +75,20 @@ export interface NavGroup {
     items: NavItem[];
 }
 
-interface SidebarProps {
+export const DEFAULT_SIDEBAR_WIDTH = 256;
+export const MIN_SIDEBAR_WIDTH = 180;
+export const MAX_SIDEBAR_WIDTH = 480;
+export const COLLAPSED_SIDEBAR_WIDTH = 64;
+
+export interface SidebarProps {
     collapsed?: boolean;
     mobileOpen?: boolean;
     onToggle?: () => void;
     onCloseMobile?: () => void;
+    width?: number;
+    onWidthChange?: (width: number) => void;
+    minWidth?: number;
+    maxWidth?: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -779,7 +788,74 @@ export function Sidebar({
     mobileOpen = false,
     onToggle,
     onCloseMobile,
+    width,
+    onWidthChange,
+    minWidth = MIN_SIDEBAR_WIDTH,
+    maxWidth = MAX_SIDEBAR_WIDTH,
 }: SidebarProps) {
+    const [isResizing, setIsResizing] = useState(false);
+    const [internalWidth, setInternalWidth] = useState<number>(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("simrs_sidebar_width");
+            if (saved) {
+                const parsed = parseInt(saved, 10);
+                if (!isNaN(parsed) && parsed >= minWidth && parsed <= maxWidth) {
+                    return parsed;
+                }
+            }
+        }
+        return DEFAULT_SIDEBAR_WIDTH;
+    });
+
+    const currentWidth = width ?? internalWidth;
+
+    const updateWidth = (newWidth: number) => {
+        const clamped = Math.min(Math.max(newWidth, minWidth), maxWidth);
+        if (onWidthChange) {
+            onWidthChange(clamped);
+        } else {
+            setInternalWidth(clamped);
+        }
+        if (typeof window !== "undefined") {
+            localStorage.setItem("simrs_sidebar_width", clamped.toString());
+        }
+    };
+
+    useEffect(() => {
+        if (!isResizing) return;
+
+        const handleMouseMove = (e: MouseEvent) => {
+            updateWidth(e.clientX);
+        };
+
+        const handleTouchMove = (e: TouchEvent) => {
+            if (e.touches[0]) {
+                updateWidth(e.touches[0].clientX);
+            }
+        };
+
+        const handleMouseUp = () => {
+            setIsResizing(false);
+        };
+
+        window.addEventListener("mousemove", handleMouseMove);
+        window.addEventListener("mouseup", handleMouseUp);
+        window.addEventListener("touchmove", handleTouchMove);
+        window.addEventListener("touchend", handleMouseUp);
+
+        document.body.style.cursor = "col-resize";
+        document.body.style.userSelect = "none";
+
+        return () => {
+            window.removeEventListener("mousemove", handleMouseMove);
+            window.removeEventListener("mouseup", handleMouseUp);
+            window.removeEventListener("touchmove", handleTouchMove);
+            window.removeEventListener("touchend", handleMouseUp);
+            document.body.style.cursor = "";
+            document.body.style.userSelect = "";
+        };
+    }, [isResizing, minWidth, maxWidth]);
+
     return (
         <>
             {mobileOpen && (
@@ -790,16 +866,49 @@ export function Sidebar({
             )}
 
             <aside
+                style={
+                    {
+                        "--sidebar-width": collapsed ? `${COLLAPSED_SIDEBAR_WIDTH}px` : `${currentWidth}px`,
+                    } as React.CSSProperties
+                }
                 className={cn(
                     "fixed inset-y-0 left-0 z-50 flex flex-col select-none",
                     "border-r border-slate-200/80 bg-white",
-                    "transition-[width,transform] duration-200 ease-out",
-                    "lg:translate-x-0",
+                    !isResizing && "transition-[width,transform] duration-200 ease-out",
+                    "lg:translate-x-0 lg:w-[var(--sidebar-width)]",
                     mobileOpen ? "translate-x-0" : "-translate-x-full",
-                    collapsed ? "lg:w-[64px]" : "lg:w-64",
-                    "w-64"
+                    "w-[var(--sidebar-width)]"
                 )}
             >
+                {/* Drag / Resize Handle */}
+                {!collapsed && (
+                    <div
+                        onMouseDown={(e) => {
+                            e.preventDefault();
+                            setIsResizing(true);
+                        }}
+                        onTouchStart={() => {
+                            setIsResizing(true);
+                        }}
+                        onDoubleClick={() => {
+                            updateWidth(DEFAULT_SIDEBAR_WIDTH);
+                        }}
+                        title="Geser untuk mengubah lebar sidebar (klik 2x untuk reset)"
+                        className={cn(
+                            "absolute top-0 right-0 bottom-0 z-50 w-2.5 cursor-col-resize group flex items-center justify-center -mr-1",
+                            "hover:bg-indigo-500/20 transition-colors select-none touch-none",
+                            isResizing && "bg-indigo-500/30"
+                        )}
+                    >
+                        <div
+                            className={cn(
+                                "w-0.5 h-8 rounded-full bg-slate-300 group-hover:bg-indigo-600 transition-all",
+                                isResizing && "bg-indigo-600 h-12 w-1 shadow-sm"
+                            )}
+                        />
+                    </div>
+                )}
+
                 {onCloseMobile && (
                     <div className="absolute right-2 top-2 z-10 lg:hidden">
                         <button

@@ -99,41 +99,6 @@ export default function PenunjangPage() {
                             Pusat Pelayanan Laboratorium Patologi, Radiologi Diagnostic, Fisioterapi & Operasi.
                         </p>
                     </div>
-
-                    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-2xs">
-                        <Calendar className="h-4 w-4 text-purple-600" />
-                        <span>05 Oktober 2026</span>
-                    </div>
-                </div>
-
-                {/* Sub-menu Navigation Bar */}
-                <div className="flex items-center gap-1.5 rounded-2xl bg-slate-100 p-1.5 border border-slate-200/60 shadow-inner overflow-x-auto scrollbar-none">
-                    {[
-                        { id: "laboratorium", label: "Laboratorium Patologi", icon: FlaskConical },
-                        { id: "radiologi", label: "Radiologi (X-Ray, CT, USG)", icon: FileText },
-                        { id: "rehab-medik", label: "Rehab Medik & FISIO", icon: Activity },
-                        { id: "mcu", label: "Paket MCU (Check Up)", icon: Stethoscope },
-                        { id: "operasi", label: "Jadwal Operasi (OK)", icon: Syringe },
-                    ].map((tab) => {
-                        const Icon = tab.icon;
-                        const isSelected = activeTab === tab.id || (activeTab === ("" as any) && tab.id === "laboratorium");
-                        return (
-                            <button
-                                key={tab.id}
-                                type="button"
-                                onClick={() => setTab(tab.id)}
-                                className={cn(
-                                    "flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all whitespace-nowrap cursor-pointer",
-                                    isSelected
-                                        ? "bg-white text-purple-700 shadow-sm font-bold"
-                                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
-                                )}
-                            >
-                                <Icon className="h-4 w-4" />
-                                <span>{tab.label}</span>
-                            </button>
-                        );
-                    })}
                 </div>
 
                 {/* TAB 1: LABORATORIUM PATOLOGI */}

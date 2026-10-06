@@ -14,9 +14,6 @@ import { api, getToken, type DashboardData } from "~/lib/api";
 import { AppShell } from "~/components/layout/AppShell";
 import { cn } from "~/lib/utils";
 
-/* -------------------------------------------------------------------------- */
-/*                                   TYPES                                    */
-/* -------------------------------------------------------------------------- */
 interface RecentActivity {
     id: string;
     avatar: string;
@@ -24,10 +21,6 @@ interface RecentActivity {
     time: string;
     dayGroup: "Today" | "Yesterday";
 }
-
-/* -------------------------------------------------------------------------- */
-/*                               MOCK ACTIVITIES                              */
-/* -------------------------------------------------------------------------- */
 const RECENT_ACTIVITIES: RecentActivity[] = [
     {
         id: "act1",
@@ -150,26 +143,6 @@ export default function Dashboard() {
                         <button onClick={load} className="underline font-bold text-rose-800">Coba Lagi</button>
                     </div>
                 )}
-
-                {/* Quick Workflow Action Shortcuts */}
-                <div className="mb-6">
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Akses Cepat Modul Utama</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-                        {QUICK_ACTIONS.map((action, i) => (
-                            <button
-                                key={i}
-                                onClick={() => navigate(action.path)}
-                                className={cn(
-                                    "flex items-center gap-2.5 p-3 rounded-2xl border text-xs font-bold transition-all shadow-sm group text-left",
-                                    action.color
-                                )}
-                            >
-                                <action.icon className="h-4 w-4 shrink-0 group-hover:scale-110 transition-transform" />
-                                <span className="truncate">{action.label}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
 
                 {loading && !data ? (
                     <div className="flex flex-col items-center justify-center gap-3 rounded-3xl bg-white py-32 ring-1 ring-slate-200/60 shadow-sm">

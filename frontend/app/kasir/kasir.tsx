@@ -78,41 +78,6 @@ export default function KasirPage() {
                             Penerimaan Kasir, Billing Pasien Rawat Jalan / Inap, Deposit Pasien, & Jurnal Akuntansi.
                         </p>
                     </div>
-
-                    <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-2xs">
-                        <Calendar className="h-4 w-4 text-emerald-600" />
-                        <span>05 Oktober 2026</span>
-                    </div>
-                </div>
-
-                {/* Sub-menu Tabs */}
-                <div className="flex items-center gap-1.5 rounded-2xl bg-slate-100 p-1.5 border border-slate-200/60 shadow-inner overflow-x-auto scrollbar-none">
-                    {[
-                        { id: "pembayaran", label: "Pembayaran & Billing Kasir", icon: Receipt },
-                        { id: "deposit", label: "Deposit Pasien", icon: Wallet },
-                        { id: "buka-tutup", label: "Buka / Tutup Kasir", icon: Clock },
-                        { id: "bendahara", label: "Bendahara & Penerimaan Kas", icon: Banknote },
-                        { id: "akuntansi", label: "Jurnal & Akuntansi", icon: Scale },
-                    ].map((tab) => {
-                        const Icon = tab.icon;
-                        const isSelected = activeTab === tab.id || (activeTab === ("" as any) && tab.id === "pembayaran");
-                        return (
-                            <button
-                                key={tab.id}
-                                type="button"
-                                onClick={() => setTab(tab.id)}
-                                className={cn(
-                                    "flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all whitespace-nowrap cursor-pointer",
-                                    isSelected
-                                        ? "bg-white text-emerald-700 shadow-sm font-bold"
-                                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
-                                )}
-                            >
-                                <Icon className="h-4 w-4" />
-                                <span>{tab.label}</span>
-                            </button>
-                        );
-                    })}
                 </div>
 
                 {/* TAB 1: PEMBAYARAN & BILLING KASIR */}
@@ -133,7 +98,7 @@ export default function KasirPage() {
                                                     <span className={cn(
                                                         "rounded-full px-2 py-0.5 text-[10px] font-bold",
                                                         t.status === "Lunas" ? "bg-emerald-50 text-emerald-700" :
-                                                        t.status === "Deposit" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"
+                                                            t.status === "Deposit" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"
                                                     )}>
                                                         {t.status}
                                                     </span>

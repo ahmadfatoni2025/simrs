@@ -1,18 +1,36 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { Menu, PanelLeftOpen } from "lucide-react";
-import { Sidebar } from "./sidebar";
-import { cn } from "~/lib/utils";
+import { Sidebar, DEFAULT_SIDEBAR_WIDTH, COLLAPSED_SIDEBAR_WIDTH, MIN_SIDEBAR_WIDTH, MAX_SIDEBAR_WIDTH } from "./sidebar";
 
 export function AppShell({ children }: { children: ReactNode }) {
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("simrs_sidebar_width");
+            if (saved) {
+                const parsed = parseInt(saved, 10);
+                if (!isNaN(parsed) && parsed >= MIN_SIDEBAR_WIDTH && parsed <= MAX_SIDEBAR_WIDTH) {
+                    return parsed;
+                }
+            }
+        }
+        return DEFAULT_SIDEBAR_WIDTH;
+    });
+
+    const activeWidth = collapsed ? COLLAPSED_SIDEBAR_WIDTH : sidebarWidth;
 
     return (
-        <div className="min-h-screen bg-[#f8f9fa] text-slate-900 font-sans antialiased">
+        <div
+            className="min-h-screen bg-[#f8f9fa] text-slate-900 font-sans antialiased"
+            style={{ "--sidebar-width": `${activeWidth}px` } as React.CSSProperties}
+        >
             <Sidebar
                 collapsed={collapsed}
                 mobileOpen={mobileOpen}
+                width={sidebarWidth}
+                onWidthChange={setSidebarWidth}
                 onToggle={() => setCollapsed((c) => !c)}
                 onCloseMobile={() => setMobileOpen(false)}
             />
@@ -39,12 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </button>
             )}
 
-            <div
-                className={cn(
-                    "transition-all duration-300",
-                    collapsed ? "lg:pl-[76px]" : "lg:pl-64"
-                )}
-            >
+            <div className="transition-[padding] duration-200 ease-out lg:pl-[var(--sidebar-width)]">
                 <main className="space-y-6 p-4 lg:p-8 max-w-7xl mx-auto">{children}</main>
             </div>
         </div>
