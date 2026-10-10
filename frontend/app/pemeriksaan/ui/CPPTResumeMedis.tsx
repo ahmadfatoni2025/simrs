@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     FileText,
     CheckCircle2,
@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { cn } from "~/lib/utils";
 import type { PatientRecord } from "../pemeriksaan";
+
+import { CustomAlertModal, type AlertType } from "~/components/ui/CustomAlertModal";
 
 interface CPPTResumeMedisProps {
     patients: PatientRecord[];
@@ -50,32 +52,61 @@ export default function CPPTResumeMedis({ patients }: CPPTResumeMedisProps) {
 
     const [activeSubTab, setActiveSubTab] = useState<"cppt" | "resume">("cppt");
 
-    const [cpptEntries, setCpptEntries] = useState<CPPTEntry[]>([
-        {
-            id: "cppt-1",
-            tanggal: "05 Okt 2026, 09:15 WIB",
-            ppa: "Dokter (DPJP)",
-            namaPPA: selectedPatient.doctorName || "dr. Andi Prasetyo",
-            subjective: "Pasien mengeluhkan pusing dan lemas sejak kemarin.",
-            objective: "TD: 120/80 mmHg, Nadi: 78x/mnt, Suhu: 36.6°C, Kesadaran: CM.",
-            assessment: "A01.0 - Typhoid Fever / Suspek Demam Enterik",
-            plan: "Pemberian antibiotik oral, istirahat baring, observasi vital sign.",
-            instruksi: "Cek Darah Lengkap (DL) & Widal. Edukasi nutrisi lunak.",
-            isVerified: true
-        },
-        {
-            id: "cppt-2",
-            tanggal: "05 Okt 2026, 08:30 WIB",
-            ppa: "Perawat",
-            namaPPA: "Ns. Ratna Wulandari, S.Kep",
-            subjective: "Pasien mengeluh mual saat bangun tidur.",
-            objective: "TD: 118/78 mmHg, Suhu: 36.8°C.",
-            assessment: "Mual berhubungan dengan proses penyakit.",
-            plan: "Pemberian minum hangat, pantau asupan cairan.",
-            instruksi: "Kolaborasi dengan DPJP untuk terapi antiemetik.",
-            isVerified: true
+    // Custom Alert State
+    const [alertState, setAlertState] = useState<{ isOpen: boolean; title?: string; message: string; type?: AlertType }>({
+        isOpen: false,
+        message: ""
+    });
+
+    const showAlert = (message: string, title?: string, type: AlertType = "success") => {
+        setAlertState({ isOpen: true, message, title, type });
+    };
+
+    // State PPA Role and Verification
+    const [selectedPpaRole, setSelectedPpaRole] = useState<"Dokter (DPJP)" | "Perawat" | "Apoteker" | "Gizi">("Dokter (DPJP)");
+    const [namaPpaInput, setNamaPpaInput] = useState(selectedPatient.doctorName || "dr. Andi Prasetyo, Sp.PD");
+
+    const [cpptEntries, setCpptEntries] = useState<CPPTEntry[]>(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem(`simrs_cppt_entries_${selectedPatient.id}`);
+            if (saved) {
+                try { return JSON.parse(saved); } catch (e) { /* ignore */ }
+            }
         }
-    ]);
+        return [
+            {
+                id: "cppt-1",
+                tanggal: "05 Okt 2026, 09:15 WIB",
+                ppa: "Dokter (DPJP)",
+                namaPPA: selectedPatient.doctorName || "dr. Andi Prasetyo, Sp.PD",
+                subjective: "Pasien mengeluhkan pusing, lemas, dan nafsu makan berkurang sejak 3 hari lalu.",
+                objective: "TD: 120/80 mmHg, HR: 78x/mnt, Suhu: 36.6°C, RR: 20x/mnt, SpO2: 98%. Kesadaran: Compos Mentis.",
+                assessment: "A01.0 - Typhoid Fever / Demam Enterik Suspek",
+                plan: "Terapi oral: Cefadroxil 2x500mg, Paracetamol 3x500mg prn. Edukasi istirahat baring & diet lunak.",
+                instruksi: "Cek Darah Lengkap & Widal. Pantau suhu tiap 4 jam oleh perawat.",
+                isVerified: true
+            },
+            {
+                id: "cppt-2",
+                tanggal: "05 Okt 2026, 08:30 WIB",
+                ppa: "Perawat",
+                namaPPA: "Ns. Ratna Wulandari, S.Kep",
+                subjective: "Pasien mengeluh mual saat bangun tidur dan badan terasa agak menggigil.",
+                objective: "TD: 118/78 mmHg, HR: 82x/mnt, Suhu: 37.2°C, SpO2: 99%.",
+                assessment: "Mual berhubungan dengan peningkatan asam lambung / proses infeksi.",
+                plan: "Pemberian air hangat, posisikan semifowler, pantau asupan cairan oral.",
+                instruksi: "Kolaborasi dengan DPJP untuk terapi antiemetik bila mual bertambah.",
+                isVerified: true
+            }
+        ];
+    });
+
+    // Save CPPT entries to localStorage whenever updated
+    useEffect(() => {
+        if (typeof window !== "undefined" && selectedPatient?.id) {
+            localStorage.setItem(`simrs_cppt_entries_${selectedPatient.id}`, JSON.stringify(cpptEntries));
+        }
+    }, [cpptEntries, selectedPatient?.id]);
 
     // New CPPT Form State
     const [newSubjective, setNewSubjective] = useState("");
@@ -84,23 +115,25 @@ export default function CPPTResumeMedis({ patients }: CPPTResumeMedisProps) {
     const [newPlan, setNewPlan] = useState("");
     const [newInstruksi, setNewInstruksi] = useState("");
 
-    const handleAddCPPT = () => {
+    const handleAddCPPT = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+
         if (!newSubjective && !newAssessment) {
-            alert("Harap isi setidaknya bagian S (Subjective) atau A (Assessment)!");
+            showAlert("Harap isi sekurang-kurangnya bagian S (Subjective) atau A (Assessment)!", "Form Tidak Lengkap", "warning");
             return;
         }
 
         const newEntry: CPPTEntry = {
             id: `cppt-${Date.now()}`,
-            tanggal: new Date().toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }),
-            ppa: "Dokter (DPJP)",
-            namaPPA: selectedPatient.doctorName || "dr. Andi Prasetyo",
-            subjective: newSubjective || "Tidak ada keluhan tambahan.",
-            objective: newObjective || "Vital sign stabil.",
-            assessment: newAssessment || "Evaluasi perkembangan klinis.",
-            plan: newPlan || "Terapi dilanjutkan.",
-            instruksi: newInstruksi || "Monitoring rutin.",
-            isVerified: true
+            tanggal: new Date().toLocaleString("id-ID", { dateStyle: "medium", timeStyle: "short" }) + " WIB",
+            ppa: selectedPpaRole,
+            namaPPA: namaPpaInput || (selectedPpaRole.includes("Dokter") ? (selectedPatient.doctorName || "dr. Andi Prasetyo") : "Ns. Perawat Jaga, S.Kep"),
+            subjective: newSubjective || "Tidak ada keluhan subjektif tambahan.",
+            objective: newObjective || "Tanda-tanda vital stabil.",
+            assessment: newAssessment || "Evaluasi perkembangan kondisi klinis.",
+            plan: newPlan || "Terapi medis dilanjutkan sesuai instruksi.",
+            instruksi: newInstruksi || "Monitoring keadaan umum dan vital sign rutin.",
+            isVerified: selectedPpaRole.includes("Dokter")
         };
 
         setCpptEntries(prev => [newEntry, ...prev]);
@@ -109,10 +142,24 @@ export default function CPPTResumeMedis({ patients }: CPPTResumeMedisProps) {
         setNewAssessment("");
         setNewPlan("");
         setNewInstruksi("");
+        showAlert("Catatan CPPT (SOAP) pasien berhasil disimpan ke Rekam Medis!", "Catatan CPPT Tersimpan", "success");
+    };
+
+    const handleVerifyEntry = (id: string) => {
+        setCpptEntries(prev =>
+            prev.map(item => item.id === id ? { ...item, isVerified: true } : item)
+        );
     };
 
     return (
         <div className="space-y-6">
+            <CustomAlertModal
+                isOpen={alertState.isOpen}
+                onClose={() => setAlertState({ ...alertState, isOpen: false })}
+                title={alertState.title}
+                message={alertState.message}
+                type={alertState.type}
+            />
             {/* Header Bar */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between rounded-2xl bg-white p-4 border border-slate-200 shadow-2xs gap-3">
                 <div className="flex items-center gap-3">
@@ -188,84 +235,126 @@ export default function CPPTResumeMedis({ patients }: CPPTResumeMedisProps) {
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
                     {/* Form Tulis CPPT Baru (1 col) */}
                     <div className="space-y-4">
-                        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-3">
-                            <h4 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">
-                                Form Tulis Catatan CPPT (SOAP) Baru
-                            </h4>
+                        <form onSubmit={handleAddCPPT} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-3">
+                            <div className="border-b border-slate-100 pb-3">
+                                <h4 className="text-sm font-bold text-slate-900">
+                                    Form Catatan Perkembangan Pasien (CPPT - SOAP)
+                                </h4>
+                                <p className="text-[11px] text-slate-500 mt-0.5">
+                                    Dokumentasi Integrasi PPA Standar Akreditasi KARS / JCI
+                                </p>
+                            </div>
 
-                            <div className="space-y-2.5 text-xs">
+                            <div className="space-y-3 text-xs">
                                 <div>
-                                    <label className="block font-bold text-slate-700 mb-1">Subjective (S)</label>
-                                    <textarea
-                                        rows={2}
-                                        value={newSubjective}
-                                        onChange={(e) => setNewSubjective(e.target.value)}
-                                        placeholder="Keluhan subjektif pasien..."
-                                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs"
-                                    />
+                                    <label className="block font-bold text-slate-700 mb-1">Peran PPA (Tenaga Kesehatan)</label>
+                                    <select
+                                        value={selectedPpaRole}
+                                        onChange={(e) => {
+                                            const role = e.target.value as any;
+                                            setSelectedPpaRole(role);
+                                            if (role.includes("Dokter")) setNamaPpaInput(selectedPatient.doctorName || "dr. Andi Prasetyo, Sp.PD");
+                                            else if (role === "Perawat") setNamaPpaInput("Ns. Ratna Wulandari, S.Kep");
+                                            else if (role === "Apoteker") setNamaPpaInput("apt. Bambang S., S.Farm");
+                                            else setNamaPpaInput("Nutrisionis Tri Wahyuni, S.Gz");
+                                        }}
+                                        className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs font-semibold focus:border-blue-600 focus:outline-none"
+                                    >
+                                        <option value="Dokter (DPJP)">Dokter (DPJP)</option>
+                                        <option value="Perawat">Perawat / Bidan</option>
+                                        <option value="Apoteker">Apoteker / Farmasi</option>
+                                        <option value="Gizi">Ahli Gizi (Nutrisionis)</option>
+                                    </select>
                                 </div>
 
                                 <div>
-                                    <label className="block font-bold text-slate-700 mb-1">Objective (O)</label>
-                                    <textarea
-                                        rows={2}
-                                        value={newObjective}
-                                        onChange={(e) => setNewObjective(e.target.value)}
-                                        placeholder="Hasil pemeriksaan fisik & vital signs..."
-                                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block font-bold text-slate-700 mb-1">Assessment (A)</label>
+                                    <label className="block font-bold text-slate-700 mb-1">Nama Pengisi / PPA Signature</label>
                                     <input
                                         type="text"
-                                        value={newAssessment}
-                                        onChange={(e) => setNewAssessment(e.target.value)}
-                                        placeholder="Diagnosa / Evaluasi perkembangan..."
-                                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs"
+                                        value={namaPpaInput}
+                                        onChange={(e) => setNamaPpaInput(e.target.value)}
+                                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs font-medium focus:border-blue-600 focus:outline-none"
                                     />
                                 </div>
 
-                                <div>
-                                    <label className="block font-bold text-slate-700 mb-1">Plan (P)</label>
-                                    <input
-                                        type="text"
-                                        value={newPlan}
-                                        onChange={(e) => setNewPlan(e.target.value)}
-                                        placeholder="Rencana penatalaksanaan / terapi..."
-                                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs"
-                                    />
-                                </div>
+                                <div className="border-t border-slate-100 pt-2 space-y-2.5">
+                                    <div>
+                                        <label className="block font-bold text-blue-700 mb-1">Subjective (S) — Keluhan Pasien</label>
+                                        <textarea
+                                            rows={2}
+                                            value={newSubjective}
+                                            onChange={(e) => setNewSubjective(e.target.value)}
+                                            placeholder="Anamnesa keluhan utama, riwayat perjalanan penyakit..."
+                                            className="w-full rounded-xl border border-slate-200 p-2.5 text-xs focus:border-blue-600 focus:outline-none"
+                                        />
+                                    </div>
 
-                                <div>
-                                    <label className="block font-bold text-slate-700 mb-1">Instruksi PPA</label>
-                                    <input
-                                        type="text"
-                                        value={newInstruksi}
-                                        onChange={(e) => setNewInstruksi(e.target.value)}
-                                        placeholder="Instruksi untuk perawat/apoteker..."
-                                        className="w-full rounded-xl border border-slate-200 p-2.5 text-xs"
-                                    />
+                                    <div>
+                                        <label className="block font-bold text-purple-700 mb-1">Objective (O) — Pemeriksaan Fisik & Vitals</label>
+                                        <textarea
+                                            rows={2}
+                                            value={newObjective}
+                                            onChange={(e) => setNewObjective(e.target.value)}
+                                            placeholder="Tanda vital (TD, Nadi, Suhu, RR, SpO2), hasil lab/radiologi..."
+                                            className="w-full rounded-xl border border-slate-200 p-2.5 text-xs focus:border-blue-600 focus:outline-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block font-bold text-emerald-700 mb-1">Assessment (A) — Diagnosa & Evaluasi</label>
+                                        <input
+                                            type="text"
+                                            value={newAssessment}
+                                            onChange={(e) => setNewAssessment(e.target.value)}
+                                            placeholder="Kode ICD-10 / Masalah keperawatan / Evaluasi gizi..."
+                                            className="w-full rounded-xl border border-slate-200 p-2.5 text-xs focus:border-blue-600 focus:outline-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block font-bold text-amber-700 mb-1">Plan (P) — Rencana Penatalaksanaan</label>
+                                        <input
+                                            type="text"
+                                            value={newPlan}
+                                            onChange={(e) => setNewPlan(e.target.value)}
+                                            placeholder="Rencana terapi medis, tindakan, edukasi..."
+                                            className="w-full rounded-xl border border-slate-200 p-2.5 text-xs focus:border-blue-600 focus:outline-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block font-bold text-slate-800 mb-1">Instruksi PPA (Kolaborasi & Monitoring)</label>
+                                        <input
+                                            type="text"
+                                            value={newInstruksi}
+                                            onChange={(e) => setNewInstruksi(e.target.value)}
+                                            placeholder="Instruksi spesifik untuk perawat / apoteker..."
+                                            className="w-full rounded-xl border border-slate-200 p-2.5 text-xs focus:border-blue-600 focus:outline-none"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
                             <button
-                                type="button"
-                                onClick={handleAddCPPT}
-                                className="w-full rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white shadow-md hover:bg-emerald-500 transition-all cursor-pointer mt-2"
+                                type="submit"
+                                className="w-full rounded-xl bg-blue-600 py-2.5 text-xs font-bold text-white shadow-md hover:bg-blue-500 transition-all cursor-pointer mt-3"
                             >
-                                + Simpan Catatan CPPT
+                                + Simpan Catatan CPPT Baru
                             </button>
-                        </div>
+                        </form>
                     </div>
 
                     {/* Timeline Log CPPT (2 cols) */}
                     <div className="lg:col-span-2 space-y-4">
                         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
-                            <h4 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">
-                                Riwayat Catatan Perkembangan Pasien (CPPT Timeline)
-                            </h4>
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                                <div>
+                                    <h4 className="text-sm font-bold text-slate-900">
+                                        Riwayat Catatan CPPT Terintegrasi ({cpptEntries.length})
+                                    </h4>
+                                    <p className="text-[11px] text-slate-500">Urutan kronologis perkembangan medis pasien</p>
+                                </div>
+                            </div>
 
                             <div className="space-y-4">
                                 {cpptEntries.map((entry) => (
@@ -274,37 +363,55 @@ export default function CPPTResumeMedis({ patients }: CPPTResumeMedisProps) {
                                             <div className="flex items-center gap-2">
                                                 <span className={cn(
                                                     "rounded-full px-2.5 py-0.5 text-[10px] font-extrabold",
-                                                    entry.ppa.includes("Dokter") ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800"
+                                                    entry.ppa.includes("Dokter") ? "bg-blue-100 text-blue-800" :
+                                                        entry.ppa === "Perawat" ? "bg-purple-100 text-purple-800" :
+                                                            entry.ppa === "Apoteker" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
                                                 )}>
                                                     {entry.ppa}
                                                 </span>
                                                 <span className="text-xs font-bold text-slate-900">{entry.namaPPA}</span>
                                             </div>
-                                            <span className="text-[11px] text-slate-400 font-medium">{entry.tanggal}</span>
+
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-[11px] text-slate-400 font-medium">{entry.tanggal}</span>
+                                                {entry.isVerified ? (
+                                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                                                        <CheckCircle2 className="h-3 w-3" /> Verifikasi DPJP
+                                                    </span>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleVerifyEntry(entry.id)}
+                                                        className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 hover:bg-amber-200"
+                                                    >
+                                                        Verifikasi DPJP
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-3 text-xs">
-                                            <div>
-                                                <span className="font-bold text-blue-600">S (Subjective):</span>
-                                                <p className="text-slate-700 mt-0.5">{entry.subjective}</p>
+                                            <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                                                <span className="font-bold text-blue-600 block">S (Subjective):</span>
+                                                <p className="text-slate-700 mt-0.5 leading-relaxed">{entry.subjective}</p>
                                             </div>
-                                            <div>
-                                                <span className="font-bold text-purple-600">O (Objective):</span>
-                                                <p className="text-slate-700 mt-0.5">{entry.objective}</p>
+                                            <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                                                <span className="font-bold text-purple-600 block">O (Objective):</span>
+                                                <p className="text-slate-700 mt-0.5 leading-relaxed">{entry.objective}</p>
                                             </div>
-                                            <div>
-                                                <span className="font-bold text-emerald-600">A (Assessment):</span>
-                                                <p className="text-slate-700 mt-0.5 font-semibold">{entry.assessment}</p>
+                                            <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                                                <span className="font-bold text-emerald-600 block">A (Assessment):</span>
+                                                <p className="text-slate-700 mt-0.5 font-semibold leading-relaxed">{entry.assessment}</p>
                                             </div>
-                                            <div>
-                                                <span className="font-bold text-amber-600">P (Plan):</span>
-                                                <p className="text-slate-700 mt-0.5">{entry.plan}</p>
+                                            <div className="bg-white p-2.5 rounded-xl border border-slate-100">
+                                                <span className="font-bold text-amber-600 block">P (Plan):</span>
+                                                <p className="text-slate-700 mt-0.5 leading-relaxed">{entry.plan}</p>
                                             </div>
                                         </div>
 
                                         {entry.instruksi && (
-                                            <div className="rounded-xl bg-white p-2.5 border border-slate-200 text-xs">
-                                                <span className="font-bold text-slate-800">Instruksi PPA:</span> {entry.instruksi}
+                                            <div className="rounded-xl bg-blue-50/50 p-2.5 border border-blue-100 text-xs">
+                                                <span className="font-bold text-blue-900">Instruksi PPA / Kolaborasi:</span>{" "}
+                                                <span className="text-blue-800">{entry.instruksi}</span>
                                             </div>
                                         )}
                                     </div>

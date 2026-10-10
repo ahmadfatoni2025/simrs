@@ -158,6 +158,34 @@ class PendaftaranController extends Controller
         ]);
     }
 
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $pendaftaran = Pendaftaran::findOrFail($id);
+
+        $validated = $request->validate([
+            'status' => 'sometimes|in:Menunggu,Diperiksa,Selesai',
+            'id_poli' => 'sometimes|integer',
+            'id_dokter' => 'sometimes|integer',
+        ]);
+
+        $pendaftaran->update($validated);
+        $pendaftaran->load(['pasien', 'poli', 'dokter']);
+
+        return response()->json([
+            'data' => [
+                'id' => $pendaftaran->id,
+                'no' => $pendaftaran->nomor_pendaftaran,
+                'rm' => $pendaftaran->pasien?->nomor_rekam_medis,
+                'name' => $pendaftaran->pasien?->nama_pasien,
+                'poli' => $pendaftaran->poli?->nama_sub_unit_pegawai,
+                'dokter' => $pendaftaran->dokter?->nama_pegawai,
+                'status' => $pendaftaran->status,
+                'tanggal' => optional($pendaftaran->tanggal)->format('d M Y'),
+                'updated_at' => $pendaftaran->updated_at?->toIso8601String(),
+            ],
+        ]);
+    }
+
     private function nextRekamMedis(): string
     {
         $last = Pasien::query()->orderByDesc('id')->value('nomor_rekam_medis');

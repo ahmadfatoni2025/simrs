@@ -5,24 +5,20 @@ import {
     ClipboardList,
     Syringe,
     Boxes,
-    XCircle,
-    HeartPulse,
     LayoutDashboard,
-    Search,
-    Plus,
-    CheckCircle2,
-    AlertTriangle,
-    Calendar,
-    Clock,
-    RefreshCw,
-    Send,
-    Package,
-    ShieldCheck,
-    FileSpreadsheet
+    Sparkles
 } from "lucide-react";
 import { AppShell } from "~/components/layout/AppShell";
 import { cn } from "~/lib/utils";
-import { api } from "~/lib/api";
+import { CustomAlertModal, type AlertType } from "~/components/ui/CustomAlertModal";
+
+import { TabDashboardFarmasi } from "./ui/TabDashboardFarmasi";
+import { TabResepDispensing } from "./ui/TabResepDispensing";
+import { TabRacikanFormularium } from "./ui/TabRacikanFormularium";
+import { TabStokInventori } from "./ui/TabStokInventori";
+import { TabReturPIO } from "./ui/TabReturPIO";
+import { ModalVerifikasiApoteker } from "./ui/ModalVerifikasiApoteker";
+import { ModalTambahStokObat } from "./ui/ModalTambahStokObat";
 
 export type FarmasiTab =
     | "dashboard"
@@ -33,19 +29,36 @@ export type FarmasiTab =
     | "retur"
     | "pio";
 
-interface ResepItem {
+export interface ObatItemResep {
+    nama: string;
+    jumlah: number;
+    satuan: string;
+    dosis: string;
+    aturan: string;
+    stokTersedia: number;
+    hargaSatuan: number;
+}
+
+export interface ResepItem {
     id: string;
     noResep: string;
     namaPasien: string;
     norm: string;
+    umur: string;
+    penjamin: "BPJS Kesehatan" | "Umum" | "Asuransi Swasta";
     dokter: string;
     poli: string;
+    depoTujuan: "Depo Rawat Jalan" | "Depo Rawat Inap" | "Depo IGD";
     waktu: string;
-    status: "Masuk" | "Diproses" | "Siap Ambil" | "Selesai";
-    daftarObat: { nama: string; jumlah: number; aturan: string }[];
+    status: "Masuk" | "Verifikasi" | "Diproses" | "Siap Ambil" | "Selesai";
+    alergiPasien?: string[];
+    peringatanInteraksi?: string[];
+    daftarObat: ObatItemResep[];
+    catatanApoteker?: string;
+    apotekerVerifikator?: string;
 }
 
-interface StokObatItem {
+export interface StokObatItem {
     id: string;
     kodeObat: string;
     namaObat: string;
@@ -55,29 +68,55 @@ interface StokObatItem {
     minStok: number;
     expiredDate: string;
     hargaSatuan: number;
+    lokasiDepo: string;
+    produsen: string;
 }
 
-const MOCK_STOK: StokObatItem[] = [
-    { id: "1", kodeObat: "FAR-001", namaObat: "Paracetamol 500mg Tablet", kategori: "Analgesik", stok: 1450, satuan: "Tablet", minStok: 200, expiredDate: "2027-12-01", hargaSatuan: 1500 },
-    { id: "2", kodeObat: "FAR-002", namaObat: "Amoxicillin 500mg Kapsul", kategori: "Antibiotik", stok: 80, satuan: "Kapsul", minStok: 150, expiredDate: "2026-11-15", hargaSatuan: 3000 },
-    { id: "3", kodeObat: "FAR-003", namaObat: "Omeprazole 20mg Kapsul", kategori: "Antasida", stok: 620, satuan: "Kapsul", minStok: 100, expiredDate: "2028-05-20", hargaSatuan: 4000 },
-    { id: "4", kodeObat: "FAR-004", namaObat: "Cefadroxil 500mg Kapsul", kategori: "Antibiotik", stok: 45, satuan: "Kapsul", minStok: 100, expiredDate: "2026-10-30", hargaSatuan: 5500 },
-    { id: "5", kodeObat: "FAR-005", namaObat: "Cefotaxime 1g Injeksi", kategori: "Injeksi", stok: 310, satuan: "Vial", minStok: 50, expiredDate: "2027-08-10", hargaSatuan: 22000 },
+export interface RacikanBahan {
+    namaObat: string;
+    dosisTarget: string;
+    jumlahBahan: number;
+    satuan: string;
+}
+
+export interface FormulaRacikan {
+    id: string;
+    namaRacikan: string;
+    jenisRacikan: "Puyer" | "Kapsul" | "Sirup / Suspension" | "Salep / Cream";
+    jumlahBungkus: number;
+    aturanPakai: string;
+    bahanList: RacikanBahan[];
+    jasaRacik: number;
+}
+
+const INITIAL_STOK: StokObatItem[] = [
+    { id: "1", kodeObat: "FAR-001", namaObat: "Paracetamol 500mg Tablet", kategori: "Analgesik & Antipiretik", stok: 1450, satuan: "Tablet", minStok: 200, expiredDate: "2027-12-01", hargaSatuan: 1500, lokasiDepo: "Depo Rawat Jalan", produsen: "Kalbe Farma" },
+    { id: "2", kodeObat: "FAR-002", namaObat: "Amoxicillin 500mg Kapsul", kategori: "Antibiotik", stok: 80, satuan: "Kapsul", minStok: 150, expiredDate: "2026-11-15", hargaSatuan: 3000, lokasiDepo: "Depo Central", produsen: "Kimia Farma" },
+    { id: "3", kodeObat: "FAR-003", namaObat: "Omeprazole 20mg Kapsul", kategori: "Antasida & Antiulkus", stok: 620, satuan: "Kapsul", minStok: 100, expiredDate: "2028-05-20", hargaSatuan: 4000, lokasiDepo: "Depo Rawat Jalan", produsen: "Dexa Medica" },
+    { id: "4", kodeObat: "FAR-004", namaObat: "Cefadroxil 500mg Kapsul", kategori: "Antibiotik", stok: 45, satuan: "Kapsul", minStok: 100, expiredDate: "2026-10-30", hargaSatuan: 5500, lokasiDepo: "Depo IGD", produsen: "Sanbe" },
+    { id: "5", kodeObat: "FAR-005", namaObat: "Cefotaxime 1g Injeksi", kategori: "Injeksi / Parenteral", stok: 310, satuan: "Vial", minStok: 50, expiredDate: "2027-08-10", hargaSatuan: 22000, lokasiDepo: "Depo Rawat Inap", produsen: "Phapros" },
+    { id: "6", kodeObat: "FAR-006", namaObat: "Cetirizine 10mg Tablet", kategori: "Antihistamin", stok: 890, satuan: "Tablet", minStok: 150, expiredDate: "2027-04-12", hargaSatuan: 1200, lokasiDepo: "Depo Rawat Jalan", produsen: "Indofarma" },
+    { id: "7", kodeObat: "FAR-007", namaObat: "Metformin 500mg Tablet", kategori: "Antidiabetes", stok: 1200, satuan: "Tablet", minStok: 300, expiredDate: "2028-01-15", hargaSatuan: 800, lokasiDepo: "Depo Rawat Jalan", produsen: "Kalbe Farma" }
 ];
 
-const MOCK_RESEP: ResepItem[] = [
+const INITIAL_RESEP: ResepItem[] = [
     {
         id: "rsp-1",
         noResep: "RSP-2026-0891",
         namaPasien: "Budi Santoso",
         norm: "RM-2026-0041",
+        umur: "45 Thn",
+        penjamin: "BPJS Kesehatan",
         dokter: "dr. Andi Prasetyo, Sp.PD",
-        poli: "Poli Umum",
+        poli: "Poli Penyakit Dalam",
+        depoTujuan: "Depo Rawat Jalan",
         waktu: "09:15 WIB",
         status: "Masuk",
+        alergiPasien: ["Penisilin"],
+        peringatanInteraksi: ["Pantau efek samping lambung dari penggunaan bersamaan."],
         daftarObat: [
-            { nama: "Paracetamol 500mg Tablet", jumlah: 10, aturan: "3 x 1 tablet sesudah makan" },
-            { nama: "Omeprazole 20mg Kapsul", jumlah: 7, aturan: "2 x 1 kapsul sebelum makan" }
+            { nama: "Paracetamol 500mg Tablet", jumlah: 10, satuan: "Tablet", dosis: "500mg", aturan: "3 x 1 tablet sesudah makan", stokTersedia: 1450, hargaSatuan: 1500 },
+            { nama: "Omeprazole 20mg Kapsul", jumlah: 7, satuan: "Kapsul", dosis: "20mg", aturan: "2 x 1 kapsul sebelum makan", stokTersedia: 620, hargaSatuan: 4000 }
         ]
     },
     {
@@ -85,12 +124,15 @@ const MOCK_RESEP: ResepItem[] = [
         noResep: "RSP-2026-0892",
         namaPasien: "Siti Rahma",
         norm: "RM-2026-0042",
+        umur: "6 Thn",
+        penjamin: "Umum",
         dokter: "dr. Maya Kartika, Sp.A",
         poli: "Poli Anak",
+        depoTujuan: "Depo Rawat Jalan",
         waktu: "09:30 WIB",
-        status: "Diproses",
+        status: "Verifikasi",
         daftarObat: [
-            { nama: "Racikan Puyer Batuk Pilek Anak", jumlah: 12, aturan: "3 x 1 puyer sesudah makan" }
+            { nama: "Racikan Puyer Batuk Pilek Anak (Paracetamol + CTM)", jumlah: 12, satuan: "Bungkus", dosis: "1 Puyer", aturan: "3 x 1 puyer sesudah makan", stokTersedia: 50, hargaSatuan: 3500 }
         ]
     },
     {
@@ -98,12 +140,31 @@ const MOCK_RESEP: ResepItem[] = [
         noResep: "RSP-2026-0889",
         namaPasien: "Dewi Lestari",
         norm: "RM-2026-0038",
+        umur: "52 Thn",
+        penjamin: "Asuransi Swasta",
         dokter: "dr. Rian Ramadhan, Sp.JP",
         poli: "Poli Jantung",
+        depoTujuan: "Depo Rawat Jalan",
         waktu: "08:45 WIB",
+        status: "Diproses",
+        daftarObat: [
+            { nama: "Cetirizine 10mg Tablet", jumlah: 10, satuan: "Tablet", dosis: "10mg", aturan: "1 x 1 tablet malam hari", stokTersedia: 890, hargaSatuan: 1200 }
+        ]
+    },
+    {
+        id: "rsp-4",
+        noResep: "RSP-2026-0885",
+        namaPasien: "Ahmad Dahlan",
+        norm: "RM-2026-0029",
+        umur: "60 Thn",
+        penjamin: "BPJS Kesehatan",
+        dokter: "dr. Hendra Kurniawan, Sp.B",
+        poli: "Poli Bedah",
+        depoTujuan: "Depo IGD",
+        waktu: "08:10 WIB",
         status: "Siap Ambil",
         daftarObat: [
-            { nama: "Aspirin 80mg Tablet", jumlah: 30, aturan: "1 x 1 tablet sesudah makan pagi" }
+            { nama: "Cefotaxime 1g Injeksi", jumlah: 2, satuan: "Vial", dosis: "1g", aturan: "2 x 1 vial i.v", stokTersedia: 310, hargaSatuan: 22000 }
         ]
     }
 ];
@@ -117,271 +178,339 @@ export default function FarmasiPage() {
         else setSearchParams({ tab });
     };
 
-    const [resepList, setResepList] = useState<ResepItem[]>(MOCK_RESEP);
-    const [stokList, setStokList] = useState<StokObatItem[]>(MOCK_STOK);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [resepList, setResepList] = useState<ResepItem[]>(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("simrs_farmasi_resep_list");
+            if (saved) {
+                try { return JSON.parse(saved); } catch (e) { /* ignore fallback */ }
+            }
+        }
+        return INITIAL_RESEP;
+    });
 
-    const updateResepStatus = (id: string, newStatus: ResepItem["status"]) => {
+    const [stokList, setStokList] = useState<StokObatItem[]>(() => {
+        if (typeof window !== "undefined") {
+            const saved = localStorage.getItem("simrs_farmasi_stok_list");
+            if (saved) {
+                try { return JSON.parse(saved); } catch (e) { /* ignore fallback */ }
+            }
+        }
+        return INITIAL_STOK;
+    });
+
+    // Custom Alert State
+    const [alertState, setAlertState] = useState<{ isOpen: boolean; title?: string; message: string; type?: AlertType }>({
+        isOpen: false,
+        message: ""
+    });
+
+    const showAlert = (message: string, title?: string, type: AlertType = "success") => {
+        setAlertState({ isOpen: true, message, title, type });
+    };
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            localStorage.setItem("simrs_farmasi_resep_list", JSON.stringify(resepList));
+        }
+    }, [resepList]);
+
+    useEffect(() => {
+        if (typeof window !== "undefined") {
+            localStorage.setItem("simrs_farmasi_stok_list", JSON.stringify(stokList));
+        }
+    }, [stokList]);
+
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedDepo, setSelectedDepo] = useState<string>("Semua Depo");
+    const [selectedStatus, setSelectedStatus] = useState<string>("Semua Status");
+    const [selectedResep, setSelectedResep] = useState<ResepItem | null>(null);
+    const [isVerifikasiModalOpen, setIsVerifikasiModalOpen] = useState(false);
+    const [catatanApotekerInput, setCatatanApotekerInput] = useState("");
+
+    // State Modal Tambah Stok Baru
+    const [isTambahStokOpen, setIsTambahStokOpen] = useState(false);
+    const [newStokForm, setNewStokForm] = useState({
+        kodeObat: "",
+        namaObat: "",
+        kategori: "Analgesik & Antipiretik",
+        stok: 100,
+        satuan: "Tablet",
+        minStok: 50,
+        expiredDate: "2027-12-31",
+        hargaSatuan: 2000,
+        lokasiDepo: "Depo Rawat Jalan",
+        produsen: "Kalbe Farma"
+    });
+
+    // State Kalkulator Racikan
+    const [racikanForm, setRacikanForm] = useState<FormulaRacikan>({
+        id: "racik-1",
+        namaRacikan: "Puyer Batuk Pilek Anak",
+        jenisRacikan: "Puyer",
+        jumlahBungkus: 10,
+        aturanPakai: "3 x 1 bungkus sesudah makan",
+        jasaRacik: 5000,
+        bahanList: [
+            { namaObat: "Paracetamol 500mg Tablet", dosisTarget: "125 mg", jumlahBahan: 2.5, satuan: "Tablet" },
+            { namaObat: "Cetirizine 10mg Tablet", dosisTarget: "2.5 mg", jumlahBahan: 2.5, satuan: "Tablet" }
+        ]
+    });
+
+    // Filtering Resep
+    const filteredResepList = resepList.filter(r => {
+        const matchesSearch =
+            r.namaPasien.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            r.noResep.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            r.norm.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesDepo = selectedDepo === "Semua Depo" || r.depoTujuan === selectedDepo;
+        const matchesStatus = selectedStatus === "Semua Status" || r.status === selectedStatus;
+        return matchesSearch && matchesDepo && matchesStatus;
+    });
+
+    // Filtering Stok
+    const filteredStok = stokList.filter(s =>
+        s.namaObat.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.kodeObat.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.kategori.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const updateResepStatus = (id: string, newStatus: ResepItem["status"], catatan?: string) => {
         setResepList(prev =>
-            prev.map(r => r.id === id ? { ...r, status: newStatus } : r)
+            prev.map(r => {
+                if (r.id === id) {
+                    return {
+                        ...r,
+                        status: newStatus,
+                        catatanApoteker: catatan !== undefined ? catatan : r.catatanApoteker,
+                        apotekerVerifikator: newStatus !== "Masuk" ? "apt. Bambang S., S.Farm" : r.apotekerVerifikator
+                    };
+                }
+                return r;
+            })
         );
     };
 
-    const filteredStok = stokList.filter(s =>
-        s.namaObat.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.kodeObat.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const handleOpenVerifikasi = (resep: ResepItem) => {
+        setSelectedResep(resep);
+        setCatatanApotekerInput(resep.catatanApoteker || "");
+        setIsVerifikasiModalOpen(true);
+    };
+
+    const handleSaveTambahStok = (e: React.FormEvent) => {
+        e.preventDefault();
+        const newItem: StokObatItem = {
+            id: `stk-${Date.now()}`,
+            ...newStokForm
+        };
+        setStokList(prev => [newItem, ...prev]);
+        setIsTambahStokOpen(false);
+        setNewStokForm({
+            kodeObat: "",
+            namaObat: "",
+            kategori: "Analgesik & Antipiretik",
+            stok: 100,
+            satuan: "Tablet",
+            minStok: 50,
+            expiredDate: "2027-12-31",
+            hargaSatuan: 2000,
+            lokasiDepo: "Depo Rawat Jalan",
+            produsen: "Kalbe Farma"
+        });
+        showAlert("Stok obat baru berhasil ditambahkan!", "Stok Ditambahkan", "success");
+    };
 
     return (
         <AppShell>
+            <CustomAlertModal
+                isOpen={alertState.isOpen}
+                onClose={() => setAlertState({ ...alertState, isOpen: false })}
+                title={alertState.title}
+                message={alertState.message}
+                type={alertState.type}
+            />
             <div className="space-y-6">
-                {/* Header */}
-                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                                Farmasi & Depo Obat
+                {/* Banner Header Gradient */}
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 p-6 text-white shadow-lg">
+                    <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div className="space-y-1.5">
+                            <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white backdrop-blur-md border border-white/20">
+                                    <PillBottle className="h-3.5 w-3.5" /> Depo Farmasi Central & E-Prescribing
+                                </span>
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/20 px-2.5 py-0.5 text-xs font-bold text-emerald-200 border border-emerald-300/30">
+                                    <Sparkles className="h-3 w-3" /> Real-Time Live Sync
+                                </span>
+                            </div>
+                            <h1 className="text-2xl font-black tracking-tight text-white sm:text-3xl">
+                                Manajemen Farmasi & Depo Obat
                             </h1>
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
-                                <PillBottle className="h-3.5 w-3.5" /> Depo Central SIMRS
-                            </span>
-                        </div>
-                        <p className="mt-1 text-xs text-slate-500">
-                            Manajemen Resep Masuk, Dispensing Obat, Racikan Formularium, & Stok Gudang Farmasi.
-                        </p>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-2xs">
-                            <Calendar className="h-4 w-4 text-emerald-600" />
-                            <span>05 Oktober 2026</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* TAB 1: DASHBOARD DEPO FARMASI */}
-                {(activeTab === "dashboard" || !searchParams.get("tab")) && (
-                    <div className="space-y-6">
-                        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs">
-                                <span className="text-xs font-semibold text-slate-500">Resep Masuk Hari Ini</span>
-                                <p className="mt-2 text-2xl font-extrabold text-slate-900">{resepList.length} Resep</p>
-                                <span className="text-[11px] text-emerald-600 font-medium">Terhubung ke Poliklinik</span>
-                            </div>
-                            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs">
-                                <span className="text-xs font-semibold text-slate-500">Sedang Diproses</span>
-                                <p className="mt-2 text-2xl font-extrabold text-blue-600">{resepList.filter(r => r.status === "Diproses").length} Resep</p>
-                                <span className="text-[11px] text-slate-400">Dalam racikan/penyiapan</span>
-                            </div>
-                            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs">
-                                <span className="text-xs font-semibold text-slate-500">Stok Kritis / Warning</span>
-                                <p className="mt-2 text-2xl font-extrabold text-amber-600">{stokList.filter(s => s.stok <= s.minStok).length} Item</p>
-                                <span className="text-[11px] text-amber-600 font-medium">Perlu reorder PO</span>
-                            </div>
-                            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs">
-                                <span className="text-xs font-semibold text-slate-500">Total Item Obat</span>
-                                <p className="mt-2 text-2xl font-extrabold text-purple-600">{stokList.length} Item</p>
-                                <span className="text-[11px] text-slate-400">Formularium Depo Central</span>
-                            </div>
+                            <p className="max-w-2xl text-xs text-blue-100 sm:text-sm">
+                                Pusat verifikasi E-Prescribing, kontrol keamanan obat (alergi & interaksi), dispensing etiket digital, dan manajemen persediaan stok rumah sakit.
+                            </p>
                         </div>
 
-                        {/* Recent Prescriptions Table */}
-                        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
-                            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-                                <h3 className="text-sm font-bold text-slate-900">Resep Elektronik Terbaru</h3>
-                                <button onClick={() => setTab("resep")} className="text-xs text-emerald-600 font-bold hover:underline">Lihat Semua</button>
-                            </div>
-
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-xs">
-                                    <thead className="bg-slate-50 text-slate-400 uppercase font-bold text-[10px]">
-                                        <tr>
-                                            <th className="px-4 py-2.5">No. Resep</th>
-                                            <th className="px-4 py-2.5">Pasien</th>
-                                            <th className="px-4 py-2.5">Dokter / Poli</th>
-                                            <th className="px-4 py-2.5">Jumlah Obat</th>
-                                            <th className="px-4 py-2.5">Status</th>
-                                            <th className="px-4 py-2.5 text-right">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {resepList.map((r) => (
-                                            <tr key={r.id}>
-                                                <td className="px-4 py-3 font-mono font-bold text-blue-600">{r.noResep}</td>
-                                                <td className="px-4 py-3">
-                                                    <p className="font-bold text-slate-900">{r.namaPasien}</p>
-                                                    <p className="text-[11px] text-slate-400">{r.norm}</p>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <p className="font-semibold text-slate-800">{r.dokter}</p>
-                                                    <p className="text-[11px] text-slate-500">{r.poli}</p>
-                                                </td>
-                                                <td className="px-4 py-3 font-bold">{r.daftarObat.length} Item</td>
-                                                <td className="px-4 py-3">
-                                                    <span className={cn(
-                                                        "rounded-full px-2.5 py-0.5 text-[10px] font-bold",
-                                                        r.status === "Masuk" ? "bg-amber-50 text-amber-700" :
-                                                            r.status === "Diproses" ? "bg-blue-50 text-blue-700" : "bg-emerald-50 text-emerald-700"
-                                                    )}>
-                                                        {r.status}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3 text-right">
-                                                    <button
-                                                        onClick={() => setTab("dispensing")}
-                                                        className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-2xs hover:bg-emerald-500"
-                                                    >
-                                                        Proses
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* TAB 2 & 3: RESEP & DISPENSING */}
-                {(activeTab === "resep" || activeTab === "dispensing") && (
-                    <div className="space-y-6">
-                        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
-                            <h3 className="text-base font-bold text-slate-900 border-b border-slate-100 pb-3">
-                                Verifikasi & Dispensing Resep Pasien
-                            </h3>
-
-                            <div className="space-y-4">
-                                {resepList.map((r) => (
-                                    <div key={r.id} className="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 space-y-3">
-                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-200/60 pb-3">
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-mono text-sm font-black text-blue-600">{r.noResep}</span>
-                                                    <span className="text-xs text-slate-400">({r.waktu})</span>
-                                                </div>
-                                                <h4 className="text-sm font-bold text-slate-900 mt-0.5">{r.namaPasien} ({r.norm})</h4>
-                                                <p className="text-xs text-slate-500">{r.dokter} • {r.poli}</p>
-                                            </div>
-
-                                            <div className="flex items-center gap-2">
-                                                {r.status === "Masuk" && (
-                                                    <button
-                                                        onClick={() => updateResepStatus(r.id, "Diproses")}
-                                                        className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-blue-500"
-                                                    >
-                                                        Mulai Siapkan Obat
-                                                    </button>
-                                                )}
-                                                {r.status === "Diproses" && (
-                                                    <button
-                                                        onClick={() => updateResepStatus(r.id, "Siap Ambil")}
-                                                        className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-emerald-500"
-                                                    >
-                                                        Verifikasi & Etiket Selesai
-                                                    </button>
-                                                )}
-                                                {r.status === "Siap Ambil" && (
-                                                    <button
-                                                        onClick={() => updateResepStatus(r.id, "Selesai")}
-                                                        className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-slate-800"
-                                                    >
-                                                        Serahkan ke Pasien
-                                                    </button>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-1.5 text-xs">
-                                            <p className="font-bold text-slate-700">Rincian Obat & Etiket Signa:</p>
-                                            <div className="space-y-1 bg-white p-3 rounded-xl border border-slate-200">
-                                                {r.daftarObat.map((o, idx) => (
-                                                    <div key={idx} className="flex justify-between items-center text-slate-800">
-                                                        <span>• <strong>{o.nama}</strong> ({o.jumlah} Pcs)</span>
-                                                        <span className="font-mono text-blue-700 font-bold bg-blue-50 px-2 py-0.5 rounded">{o.aturan}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* TAB 5: STOK OBAT & INVENTORI */}
-                {activeTab === "stok" && (
-                    <div className="space-y-6">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-2xl bg-white p-4 border border-slate-200 shadow-2xs">
-                            <div className="relative flex-1 max-w-md">
-                                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                <input
-                                    type="text"
-                                    placeholder="Cari obat / kode stok..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full rounded-xl border border-slate-200 pl-10 pr-3 py-2 text-xs focus:border-emerald-600 focus:outline-none"
-                                />
-                            </div>
-
-                            <button className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-emerald-500">
-                                + Tambah Item Stok Baru
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                onClick={() => setTab("resep")}
+                                className="inline-flex items-center gap-2 rounded-2xl bg-white px-4 py-2.5 text-xs font-bold text-blue-700 shadow-md transition-all hover:bg-blue-50 active:scale-95 cursor-pointer"
+                            >
+                                <ClipboardList className="h-4 w-4 text-blue-600" />
+                                Lihat Resep Masuk ({resepList.filter(r => r.status === "Masuk").length})
+                            </button>
+                            <button
+                                onClick={() => setTab("stok")}
+                                className="inline-flex items-center gap-2 rounded-2xl bg-indigo-900/40 px-4 py-2.5 text-xs font-bold text-white border border-white/20 backdrop-blur-sm transition-all hover:bg-indigo-900/60 active:scale-95 cursor-pointer"
+                            >
+                                <Boxes className="h-4 w-4" />
+                                Inventori Stok
                             </button>
                         </div>
-
-                        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs overflow-hidden">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left text-xs">
-                                    <thead className="bg-slate-50 text-slate-400 uppercase font-bold text-[10px]">
-                                        <tr>
-                                            <th className="px-4 py-3">Kode Obat</th>
-                                            <th className="px-4 py-3">Nama Sediaan</th>
-                                            <th className="px-4 py-3">Kategori</th>
-                                            <th className="px-4 py-3">Sisa Stok</th>
-                                            <th className="px-4 py-3">Kadaluarsa (ED)</th>
-                                            <th className="px-4 py-3">Harga Satuan</th>
-                                            <th className="px-4 py-3 text-right">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100">
-                                        {filteredStok.map((s) => (
-                                            <tr key={s.id}>
-                                                <td className="px-4 py-3 font-mono font-bold text-slate-900">{s.kodeObat}</td>
-                                                <td className="px-4 py-3 font-bold text-slate-900">{s.namaObat}</td>
-                                                <td className="px-4 py-3 text-slate-500">{s.kategori}</td>
-                                                <td className="px-4 py-3 font-extrabold text-blue-600">{s.stok} {s.satuan}</td>
-                                                <td className="px-4 py-3 font-mono text-slate-600">{s.expiredDate}</td>
-                                                <td className="px-4 py-3 font-semibold">Rp {s.hargaSatuan.toLocaleString()}</td>
-                                                <td className="px-4 py-3 text-right">
-                                                    {s.stok <= s.minStok ? (
-                                                        <span className="rounded-full bg-rose-50 px-2.5 py-0.5 text-[10px] font-bold text-rose-700">Stok Kritis</span>
-                                                    ) : (
-                                                        <span className="rounded-full bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-700">Aman</span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
                     </div>
+
+                    <div className="absolute -right-10 -bottom-10 h-48 w-48 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+                    <div className="absolute left-1/2 top-0 h-32 w-32 -translate-x-1/2 rounded-full bg-indigo-400/20 blur-xl pointer-events-none" />
+                </div>
+
+                {/* Sub-Navigation Tabs */}
+                <div className="flex items-center gap-1.5 overflow-x-auto border-b border-slate-200/80 pb-2 text-xs font-semibold">
+                    <button
+                        onClick={() => setTab("dashboard")}
+                        className={cn(
+                            "flex items-center gap-2 rounded-xl px-4 py-2 transition-all whitespace-nowrap cursor-pointer",
+                            activeTab === "dashboard" || !searchParams.get("tab")
+                                ? "bg-blue-600 text-white shadow-xs font-bold"
+                                : "text-slate-600 hover:bg-slate-100"
+                        )}
+                    >
+                        <LayoutDashboard className="h-4 w-4" /> Ringkasan & Kanban Resep
+                    </button>
+                    <button
+                        onClick={() => setTab("resep")}
+                        className={cn(
+                            "flex items-center gap-2 rounded-xl px-4 py-2 transition-all whitespace-nowrap cursor-pointer",
+                            activeTab === "resep"
+                                ? "bg-blue-600 text-white shadow-xs font-bold"
+                                : "text-slate-600 hover:bg-slate-100"
+                        )}
+                    >
+                        <ClipboardList className="h-4 w-4" /> E-Prescribing & Verifikasi
+                        <span className="ml-1 rounded-full bg-amber-400 px-1.5 py-0.2 text-[10px] font-black text-slate-900">
+                            {resepList.filter(r => r.status === "Masuk" || r.status === "Verifikasi").length}
+                        </span>
+                    </button>
+                    <button
+                        onClick={() => setTab("dispensing")}
+                        className={cn(
+                            "flex items-center gap-2 rounded-xl px-4 py-2 transition-all whitespace-nowrap cursor-pointer",
+                            activeTab === "dispensing"
+                                ? "bg-blue-600 text-white shadow-xs font-bold"
+                                : "text-slate-600 hover:bg-slate-100"
+                        )}
+                    >
+                        <PillBottle className="h-4 w-4" /> Penyiapan & Etiket
+                    </button>
+                    <button
+                        onClick={() => setTab("racikan")}
+                        className={cn(
+                            "flex items-center gap-2 rounded-xl px-4 py-2 transition-all whitespace-nowrap cursor-pointer",
+                            activeTab === "racikan"
+                                ? "bg-blue-600 text-white shadow-xs font-bold"
+                                : "text-slate-600 hover:bg-slate-100"
+                        )}
+                    >
+                        <Syringe className="h-4 w-4" /> Formularium Racikan
+                    </button>
+                    <button
+                        onClick={() => setTab("stok")}
+                        className={cn(
+                            "flex items-center gap-2 rounded-xl px-4 py-2 transition-all whitespace-nowrap cursor-pointer",
+                            activeTab === "stok"
+                                ? "bg-blue-600 text-white shadow-xs font-bold"
+                                : "text-slate-600 hover:bg-slate-100"
+                        )}
+                    >
+                        <Boxes className="h-4 w-4" /> Stok Obat & Depo
+                        {stokList.filter(s => s.stok <= s.minStok).length > 0 && (
+                            <span className="ml-1 rounded-full bg-rose-500 px-1.5 py-0.2 text-[10px] font-bold text-white">
+                                {stokList.filter(s => s.stok <= s.minStok).length}
+                            </span>
+                        )}
+                    </button>
+                </div>
+
+                {/* TAB 1: DASHBOARD & KANBAN STATUS RESEP */}
+                {(activeTab === "dashboard" || !searchParams.get("tab")) && (
+                    <TabDashboardFarmasi
+                        resepList={resepList}
+                        stokCountKritis={stokList.filter(s => s.stok <= s.minStok).length}
+                        stokTotalCount={stokList.length}
+                        searchQuery={searchQuery}
+                        setSearchQuery={setSearchQuery}
+                        selectedDepo={selectedDepo}
+                        setSelectedDepo={setSelectedDepo}
+                        selectedStatus={selectedStatus}
+                        setSelectedStatus={setSelectedStatus}
+                        filteredResepList={filteredResepList}
+                        onOpenVerifikasi={handleOpenVerifikasi}
+                        onUpdateResepStatus={updateResepStatus}
+                    />
                 )}
 
-                {/* TAB 4, 6, 7 FALLBACK VIEWS */}
-                {(activeTab === "racikan" || activeTab === "retur" || activeTab === "pio") && (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-2xs text-center space-y-3">
-                        <PillBottle className="h-10 w-10 text-emerald-600 mx-auto" />
-                        <h3 className="text-base font-bold text-slate-900">
-                            Modul {activeTab === "racikan" ? "Obat Racikan & Formularium" : activeTab === "retur" ? "Retur Obat & Penanganan ED" : "PIO & Farklin (Rekonsiliasi)"} SIMRS
-                        </h3>
-                        <p className="text-xs text-slate-500 max-w-md mx-auto">
-                            Fitur operasional depo farmasi aktif dan terhubung ke backend database utama.
-                        </p>
-                    </div>
+                {/* TAB 2 & 3: E-PRESCRIBING, VERIFIKASI & DISPENSING DETAIL */}
+                {(activeTab === "resep" || activeTab === "dispensing") && (
+                    <TabResepDispensing
+                        filteredResepList={filteredResepList}
+                        setSearchQuery={setSearchQuery}
+                        onOpenVerifikasi={handleOpenVerifikasi}
+                        onUpdateResepStatus={updateResepStatus}
+                        onShowAlert={showAlert}
+                    />
+                )}
+
+                {/* TAB 4: OBAT RACIKAN & FORMULARIUM */}
+                {activeTab === "racikan" && (
+                    <TabRacikanFormularium
+                        racikanForm={racikanForm}
+                        setRacikanForm={setRacikanForm}
+                        onShowAlert={showAlert}
+                    />
+                )}
+
+                {/* TAB 5: MANAJEMEN STOK OBAT & INVENTORI */}
+                {activeTab === "stok" && (
+                    <TabStokInventori
+                        stokList={stokList}
+                        searchQuery={searchQuery}
+                        setSearchQuery={setSearchQuery}
+                        filteredStok={filteredStok}
+                        onOpenTambahStok={() => setIsTambahStokOpen(true)}
+                    />
+                )}
+
+                {/* TAB 6 & 7: RETUR & PIO */}
+                {(activeTab === "retur" || activeTab === "pio") && (
+                    <TabReturPIO activeTab={activeTab} />
                 )}
             </div>
+
+            {/* MODAL VERIFIKASI APOTEKER */}
+            <ModalVerifikasiApoteker
+                isOpen={isVerifikasiModalOpen}
+                onClose={() => setIsVerifikasiModalOpen(false)}
+                selectedResep={selectedResep}
+                catatanApotekerInput={catatanApotekerInput}
+                setCatatanApotekerInput={setCatatanApotekerInput}
+                onUpdateResepStatus={updateResepStatus}
+            />
+
+            {/* MODAL TAMBAH STOK OBAT BARU */}
+            <ModalTambahStokObat
+                isOpen={isTambahStokOpen}
+                onClose={() => setIsTambahStokOpen(false)}
+                newStokForm={newStokForm}
+                setNewStokForm={setNewStokForm}
+                onSaveTambahStok={handleSaveTambahStok}
+            />
         </AppShell>
     );
 }

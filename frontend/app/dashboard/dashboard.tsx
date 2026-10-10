@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router";
 import {
     Activity, Calendar, BedDouble, Clock, Loader2, MoreHorizontal,
@@ -52,26 +52,73 @@ const RECENT_ACTIVITIES: RecentActivity[] = [
     },
 ];
 
+// Auto-polling interval in milliseconds (15 seconds)
+const POLL_INTERVAL_MS = 15_000;
+
 export default function Dashboard() {
     const navigate = useNavigate();
     const [data, setData] = useState<DashboardData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState("");
     const [selectedYear, setSelectedYear] = useState("Tahun Ini");
     const [searchQuery, setSearchQuery] = useState("");
+    const [lastSynced, setLastSynced] = useState<Date | null>(null);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-    async function load() {
+    // Fetch dashboard data. `silent` = true skips the full-screen loading spinner.
+    const fetchDashboard = useCallback(async (silent = false) => {
         if (!getToken()) { navigate("/login", { replace: true }); return; }
-        setLoading(true); setError("");
+        if (!silent) setLoading(true);
+        setRefreshing(true);
+        setError("");
         try {
             const payload = await api<{ data: DashboardData }>("/dashboard");
             setData(payload.data);
+            setLastSynced(new Date());
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Gagal memuat data dashboard.");
-        } finally { setLoading(false); }
-    }
+            // Only show error on initial load or manual refresh, not silent polls
+            if (!silent) {
+                setError(err instanceof Error ? err.message : "Gagal memuat data dashboard.");
+            }
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
+        }
+    }, [navigate]);
 
-    useEffect(() => { void load(); }, [navigate]);
+    // Backward-compatible alias used by the refresh button in the activity log
+    const load = useCallback(() => fetchDashboard(false), [fetchDashboard]);
+
+    // Initial fetch + auto-polling
+    useEffect(() => {
+        void fetchDashboard(false);
+
+        intervalRef.current = setInterval(() => {
+            void fetchDashboard(true);
+        }, POLL_INTERVAL_MS);
+
+        return () => {
+            if (intervalRef.current) clearInterval(intervalRef.current);
+        };
+    }, [fetchDashboard]);
+
+    // Pause polling when the tab is hidden, resume when visible
+    useEffect(() => {
+        const handleVisibility = () => {
+            if (document.hidden) {
+                if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+            } else {
+                // Immediately refresh and restart polling
+                void fetchDashboard(true);
+                intervalRef.current = setInterval(() => {
+                    void fetchDashboard(true);
+                }, POLL_INTERVAL_MS);
+            }
+        };
+        document.addEventListener("visibilitychange", handleVisibility);
+        return () => document.removeEventListener("visibilitychange", handleVisibility);
+    }, [fetchDashboard]);
 
     // Live Synchronized Database Data
     const stats = data?.stats ?? [];
@@ -118,19 +165,45 @@ export default function Dashboard() {
                         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
                             Dashboard SIMRS Integrasi
                         </h1>
-                        <p className="text-xs text-slate-400 mt-0.5">Summary data realtime & alur kerja rumah sakit</p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                            <p className="text-xs text-slate-400">Summary data realtime & alur kerja rumah sakit</p>
+                            {/* Live sync badge */}
+                            <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-600 text-[10px] font-bold px-2 py-0.5 rounded-full ring-1 ring-emerald-100">
+                                <span className={cn("h-1.5 w-1.5 rounded-full bg-emerald-500", refreshing && "animate-pulse")} />
+                                {refreshing ? "Menyinkronkan..." : "Live"}
+                            </span>
+                        </div>
                     </div>
 
-                    {/* Center Search Input */}
-                    <div className="relative w-full sm:w-[420px]">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder="Cari pasien, No. RM, poliklinik, atau dokter..."
-                            className="w-full rounded-full bg-white border-0 py-2.5 pl-11 pr-4 text-xs shadow-sm ring-1 ring-slate-200/60 focus:ring-2 focus:ring-emerald-500 focus:outline-none placeholder:text-slate-400 transition-all"
-                        />
+                    <div className="flex items-center gap-3">
+                        {/* Last synced + manual refresh */}
+                        <div className="flex items-center gap-2">
+                            {lastSynced && (
+                                <span className="text-[10px] text-slate-400 hidden sm:inline">
+                                    Diperbarui {lastSynced.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                                </span>
+                            )}
+                            <button
+                                onClick={() => void fetchDashboard(false)}
+                                disabled={refreshing}
+                                className="flex items-center justify-center h-8 w-8 rounded-full bg-white ring-1 ring-slate-200/60 text-slate-500 hover:text-emerald-600 hover:ring-emerald-200 transition-all disabled:opacity-50"
+                                title="Refresh data sekarang"
+                            >
+                                <RefreshCw className={cn("h-3.5 w-3.5", refreshing && "animate-spin")} />
+                            </button>
+                        </div>
+
+                        {/* Center Search Input */}
+                        <div className="relative w-full sm:w-[420px]">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <input
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="Cari pasien, No. RM, poliklinik, atau dokter..."
+                                className="w-full rounded-full bg-white border-0 py-2.5 pl-11 pr-4 text-xs shadow-sm ring-1 ring-slate-200/60 focus:ring-2 focus:ring-emerald-500 focus:outline-none placeholder:text-slate-400 transition-all"
+                            />
+                        </div>
                     </div>
 
                 </div>
@@ -462,8 +535,8 @@ export default function Dashboard() {
                             <div className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200/50 space-y-4">
                                 <div className="flex items-center justify-between">
                                     <h3 className="text-sm font-bold text-slate-900">Log Aktivitas Layanan RS</h3>
-                                    <button onClick={load} className="text-slate-400 hover:text-slate-600">
-                                        <RefreshCw className="h-4 w-4" />
+                                    <button onClick={load} disabled={refreshing} className="text-slate-400 hover:text-slate-600 disabled:opacity-50">
+                                        <RefreshCw className={cn("h-4 w-4", refreshing && "animate-spin")} />
                                     </button>
                                 </div>
 

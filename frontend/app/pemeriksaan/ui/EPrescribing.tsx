@@ -13,6 +13,8 @@ import {
 import { cn } from "~/lib/utils";
 import type { PatientRecord } from "../pemeriksaan";
 
+import { CustomAlertModal, type AlertType } from "~/components/ui/CustomAlertModal";
+
 interface EPrescribingProps {
     patients: PatientRecord[];
 }
@@ -55,6 +57,16 @@ export default function EPrescribing({ patients }: EPrescribingProps) {
             chiefComplaint: "Pemeriksaan medis rutin"
         }
     );
+
+    // Custom Alert State
+    const [alertState, setAlertState] = useState<{ isOpen: boolean; title?: string; message: string; type?: AlertType }>({
+        isOpen: false,
+        message: ""
+    });
+
+    const showAlert = (message: string, title?: string, type: AlertType = "success") => {
+        setAlertState({ isOpen: true, message, title, type });
+    };
 
     const [recipeItems, setRecipeItems] = useState<RecipeItem[]>([
         {
@@ -102,11 +114,59 @@ export default function EPrescribing({ patients }: EPrescribingProps) {
     };
 
     const handleSendToPharmacy = () => {
-        alert(`Resep Elektronik untuk pasien ${selectedPatient.name} (${selectedPatient.norm}) berhasil dikirim ke Depo Farmasi SIMRS!`);
+        if (recipeItems.length === 0) {
+            showAlert("Daftar resep obat masih kosong! Harap tambahkan obat terlebih dahulu.", "Resep Kosong", "warning");
+            return;
+        }
+
+        const newResep = {
+            id: `rsp-${Date.now()}`,
+            noResep: `RSP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+            namaPasien: selectedPatient.name,
+            norm: selectedPatient.norm,
+            umur: `${selectedPatient.age} Thn`,
+            penjamin: selectedPatient.guarantee === "BPJS" ? "BPJS Kesehatan" : "Umum",
+            dokter: selectedPatient.doctorName || "dr. Andi Prasetyo",
+            poli: selectedPatient.clinic || "Poli Umum",
+            depoTujuan: "Depo Rawat Jalan",
+            waktu: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB",
+            status: "Masuk",
+            daftarObat: recipeItems.map(item => ({
+                nama: item.namaObat,
+                jumlah: item.jumlah,
+                satuan: item.satuan,
+                dosis: item.dosis,
+                aturan: item.aturanPakai,
+                stokTersedia: 500,
+                hargaSatuan: 2500
+            }))
+        };
+
+        if (typeof window !== "undefined") {
+            const savedResep = localStorage.getItem("simrs_farmasi_resep_list");
+            let list = [];
+            if (savedResep) {
+                try { list = JSON.parse(savedResep); } catch (e) { list = []; }
+            }
+            localStorage.setItem("simrs_farmasi_resep_list", JSON.stringify([newResep, ...list]));
+        }
+
+        showAlert(
+            `Resep Elektronik (${recipeItems.length} obat) untuk pasien ${selectedPatient.name} (${selectedPatient.norm}) berhasil dikirim ke Depo Farmasi SIMRS!`,
+            "Resep Terkirim ke Depo Farmasi",
+            "success"
+        );
     };
 
     return (
         <div className="space-y-6">
+            <CustomAlertModal
+                isOpen={alertState.isOpen}
+                onClose={() => setAlertState({ ...alertState, isOpen: false })}
+                title={alertState.title}
+                message={alertState.message}
+                type={alertState.type}
+            />
             {/* Header Banner */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between rounded-2xl bg-white p-4 border border-slate-200 shadow-2xs gap-3">
                 <div className="flex items-center gap-3">

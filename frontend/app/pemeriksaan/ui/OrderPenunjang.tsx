@@ -13,6 +13,8 @@ import {
 import { cn } from "~/lib/utils";
 import type { PatientRecord } from "../pemeriksaan";
 
+import { CustomAlertModal, type AlertType } from "~/components/ui/CustomAlertModal";
+
 interface OrderPenunjangProps {
     patients: PatientRecord[];
 }
@@ -52,6 +54,16 @@ export default function OrderPenunjang({ patients }: OrderPenunjangProps) {
         chiefComplaint: "Pemeriksaan medis rutin"
     });
 
+    // Custom Alert State
+    const [alertState, setAlertState] = useState<{ isOpen: boolean; title?: string; message: string; type?: AlertType }>({
+        isOpen: false,
+        message: ""
+    });
+
+    const showAlert = (message: string, title?: string, type: AlertType = "success") => {
+        setAlertState({ isOpen: true, message, title, type });
+    };
+
     const [selectedOrders, setSelectedOrders] = useState<OrderItem[]>([MASTER_PENUNJANG[0], MASTER_PENUNJANG[4]]);
     const [catatanKlinis, setCatatanKlinis] = useState("Evaluasi batuk lama dan kecurigaan efusi pleura.");
 
@@ -68,13 +80,24 @@ export default function OrderPenunjang({ patients }: OrderPenunjangProps) {
     };
 
     const handleSendOrder = () => {
-        alert(`Order Penunjang (${selectedOrders.length} Pemeriksaan) untuk pasien ${selectedPatient.name} (${selectedPatient.norm}) berhasil dikirim ke Unit Lab/Rad!`);
+        showAlert(
+            `Order Penunjang (${selectedOrders.length} Pemeriksaan) untuk pasien ${selectedPatient.name} (${selectedPatient.norm}) berhasil dikirim ke Unit Lab/Rad!`,
+            "Order Penunjang Terkirim",
+            "success"
+        );
     };
 
     const totalTarif = selectedOrders.reduce((sum, item) => sum + item.tarif, 0);
 
     return (
         <div className="space-y-6">
+            <CustomAlertModal
+                isOpen={alertState.isOpen}
+                onClose={() => setAlertState({ ...alertState, isOpen: false })}
+                title={alertState.title}
+                message={alertState.message}
+                type={alertState.type}
+            />
             {/* Header Banner */}
             <div className="flex flex-col md:flex-row md:items-center md:justify-between rounded-2xl bg-white p-4 border border-slate-200 shadow-2xs gap-3">
                 <div className="flex items-center gap-3">

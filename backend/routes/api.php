@@ -28,6 +28,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/pendaftaran', [PendaftaranController::class, 'index']);
     Route::post('/pendaftaran', [PendaftaranController::class, 'store']);
     Route::get('/pendaftaran/{id}', [PendaftaranController::class, 'show']);
+    Route::put('/pendaftaran/{id}', [PendaftaranController::class, 'update']);
     Route::get('/pasien', [\App\Http\Controllers\Api\PasienController::class, 'index']);
     Route::get('/pasien/{id}/registrations', [\App\Http\Controllers\Api\PasienController::class, 'registrations']);
 });
