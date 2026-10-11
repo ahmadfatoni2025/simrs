@@ -274,16 +274,95 @@ export default function FarmasiPage() {
         s.kategori.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const syncResepToBillingAndStock = (resep: ResepItem) => {
+        if (typeof window === "undefined") return;
+
+        // 1. Kurangi stok obat di Farmasi & Logistik jika ada obat
+        setStokList(prevStok => {
+            const nextStok = prevStok.map(item => {
+                const matchInResep = resep.daftarObat.find(o => o.nama.toLowerCase().includes(item.namaObat.toLowerCase()) || item.namaObat.toLowerCase().includes(o.nama.toLowerCase()));
+                if (matchInResep) {
+                    const newQty = Math.max(0, item.stok - matchInResep.jumlah);
+                    return { ...item, stok: newQty };
+                }
+                return item;
+            });
+            return nextStok;
+        });
+
+        // 2. Generate / update Tagihan Billing Kasir
+        try {
+            const rawBilling = localStorage.getItem("simrs_billing_tagihan_list");
+            let billingList: any[] = rawBilling ? JSON.parse(rawBilling) : [];
+            const existingBill = billingList.find((b: any) => b.noResepRef === resep.noResep || b.norm === resep.norm);
+
+            const obatItems = resep.daftarObat.map((o, idx) => ({
+                id: `itm-far-${Date.now()}-${idx}`,
+                kategori: "Farmasi / Obat",
+                namaItem: `${o.nama} (${o.jumlah} ${o.satuan})`,
+                jumlah: o.jumlah,
+                satuan: o.satuan,
+                tarifSatuan: o.hargaSatuan,
+                subtotal: o.jumlah * o.hargaSatuan,
+                statusJurnal: "Pending"
+            }));
+
+            const totalObat = obatItems.reduce((acc, curr) => acc + curr.subtotal, 0);
+
+            if (existingBill) {
+                // Tambahkan rincian obat jika belum ada
+                const otherItems = existingBill.items.filter((it: any) => it.kategori !== "Farmasi / Obat");
+                existingBill.items = [...otherItems, ...obatItems];
+                existingBill.totalBiaya = existingBill.items.reduce((acc: number, it: any) => acc + it.subtotal, 0);
+                existingBill.sisaTagihan = Math.max(0, existingBill.totalBiaya - (existingBill.totalSudahBayar || 0));
+                existingBill.noResepRef = resep.noResep;
+            } else {
+                const newBill = {
+                    id: `bill-${Date.now()}`,
+                    noBilling: `BILL-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+                    noNota: `KW-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+                    noResepRef: resep.noResep,
+                    noRegistrasi: `REG-${resep.norm}`,
+                    pasien: resep.namaPasien,
+                    norm: resep.norm,
+                    umur: resep.umur,
+                    layanan: resep.poli,
+                    dokterPemeriksa: resep.dokter,
+                    penjamin: resep.penjamin,
+                    totalBiaya: totalObat + 50000, // Biaya obat + administrasi/konsultasi poli
+                    totalSudahBayar: resep.penjamin === "BPJS Kesehatan" ? (totalObat + 50000) : 0,
+                    sisaTagihan: resep.penjamin === "BPJS Kesehatan" ? 0 : (totalObat + 50000),
+                    status: resep.penjamin === "BPJS Kesehatan" ? "Lunas" : "Belum Bayar",
+                    tanggal: new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
+                    jam: new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB",
+                    metodePembayaran: resep.penjamin === "BPJS Kesehatan" ? "BPJS Direct" : undefined,
+                    items: [
+                        { id: `itm-adm-${Date.now()}`, kategori: "Tindakan / Konsultasi", namaItem: `Konsultasi & Pemeriksaan ${resep.poli}`, jumlah: 1, satuan: "Kunjungan", tarifSatuan: 50000, subtotal: 50000 },
+                        ...obatItems
+                    ]
+                };
+                billingList = [newBill, ...billingList];
+            }
+            localStorage.setItem("simrs_billing_tagihan_list", JSON.stringify(billingList));
+        } catch (e) {
+            console.error("Gagal sinkron billing kasir:", e);
+        }
+    };
+
     const updateResepStatus = (id: string, newStatus: ResepItem["status"], catatan?: string) => {
         setResepList(prev =>
             prev.map(r => {
                 if (r.id === id) {
-                    return {
+                    const updated = {
                         ...r,
                         status: newStatus,
                         catatanApoteker: catatan !== undefined ? catatan : r.catatanApoteker,
                         apotekerVerifikator: newStatus !== "Masuk" ? "apt. Bambang S., S.Farm" : r.apotekerVerifikator
                     };
+                    if (newStatus === "Siap Ambil" || newStatus === "Selesai") {
+                        syncResepToBillingAndStock(updated);
+                    }
+                    return updated;
                 }
                 return r;
             })
@@ -435,6 +514,28 @@ export default function FarmasiPage() {
                                 {stokList.filter(s => s.stok <= s.minStok).length}
                             </span>
                         )}
+                    </button>
+                    <button
+                        onClick={() => setTab("retur")}
+                        className={cn(
+                            "flex items-center gap-2 rounded-xl px-4 py-2 transition-all whitespace-nowrap cursor-pointer",
+                            activeTab === "retur"
+                                ? "bg-blue-600 text-white shadow-xs font-bold"
+                                : "text-slate-600 hover:bg-slate-100"
+                        )}
+                    >
+                        <Boxes className="h-4 w-4" /> Retur & Kadaluarsa
+                    </button>
+                    <button
+                        onClick={() => setTab("pio")}
+                        className={cn(
+                            "flex items-center gap-2 rounded-xl px-4 py-2 transition-all whitespace-nowrap cursor-pointer",
+                            activeTab === "pio"
+                                ? "bg-blue-600 text-white shadow-xs font-bold"
+                                : "text-slate-600 hover:bg-slate-100"
+                        )}
+                    >
+                        <PillBottle className="h-4 w-4" /> PIO & Rekonsiliasi
                     </button>
                 </div>
 
