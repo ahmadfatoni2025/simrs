@@ -275,11 +275,11 @@ export const navGroups: NavGroup[] = [
                 icon: Stethoscope,
                 children: [
                     { label: "Pemeriksaan Dokter", to: "/pemeriksaan", icon: LayoutDashboard },
-                    { label: "Antrean Poliklinik", to: "/pemeriksaan?tab=antrean", icon: Clock },
-                    { label: "Pemeriksaan & Anamnesis", to: "/pemeriksaan?tab=pemeriksaan", icon: Stethoscope },
-                    { label: "E-Prescribing (Resep Elektronik)", to: "/pemeriksaan?tab=resep", icon: PillBottle },
-                    { label: "Order Penunjang Lab/Rad", to: "/pemeriksaan?tab=order", icon: FlaskConical },
-                    { label: "CPPT & Resume Medis", to: "/pemeriksaan?tab=cppt", icon: FileText },
+                    { label: "Antrean Poliklinik", to: "/pemeriksaan/antrean", icon: Clock },
+                    { label: "Pemeriksaan & Anamnesis", to: "/pemeriksaan/anamnesis", icon: Stethoscope },
+                    { label: "E-Prescribing (Resep Elektronik)", to: "/pemeriksaan/resep", icon: PillBottle },
+                    { label: "Order Penunjang Lab/Rad", to: "/pemeriksaan/order", icon: FlaskConical },
+                    { label: "CPPT & Resume Medis", to: "/pemeriksaan/cppt", icon: FileText },
                 ],
             },
             {
@@ -424,9 +424,14 @@ function isNavActive(item: NavItem, currentPath: string, currentSearch: string =
     if (item.to === fullUrl) return true;
     if (item.to === currentPath && !currentSearch) return true;
     if (item.to.includes("?") && fullUrl.startsWith(item.to)) return true;
-    if (item.to !== "/" && !item.to.includes("?") && currentPath.startsWith(item.to)) return true;
     if (item.children && item.children.length > 0) {
         return item.children.some((child) => isNavActive(child, currentPath, currentSearch));
+    }
+    if (item.to !== "/" && !item.to.includes("?") && !item.children?.length) {
+        if (currentPath === item.to) return true;
+        if (item.to === "/pemeriksaan" && currentPath !== "/pemeriksaan") return false;
+        if (item.to === "/pendaftaran" && currentPath !== "/pendaftaran") return false;
+        return currentPath.startsWith(`${item.to}/`);
     }
     return false;
 }
